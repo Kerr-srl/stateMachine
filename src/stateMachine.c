@@ -22,6 +22,8 @@
 
 #include "stateMachine.h"
 
+#include <assert.h>
+
 static void goToErrorState(struct stateMachine *stateMachine,
 						   struct event *const event);
 static struct transition *getTransition(struct stateMachine *stateMachine,
@@ -30,8 +32,9 @@ static struct transition *getTransition(struct stateMachine *stateMachine,
 
 void stateM_init(struct stateMachine *fsm, struct state *initialState,
 				 struct state *errorState) {
-	if (!fsm)
-		return;
+	assert(initialState != NULL);
+	assert(errorState != NULL);
+	assert(fsm != NULL);
 
 	fsm->currentState = initialState;
 	fsm->previousState = NULL;

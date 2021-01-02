@@ -339,7 +339,8 @@ struct state {
 /**
  * \brief State machine
  *
- * There is no need to manipulate the members directly.
+ * Treat this struct as an opaque type. Don't manipulate the
+ * members directly.
  */
 struct stateMachine {
 	/** \brief Pointer to the current state */
@@ -377,10 +378,10 @@ struct stateMachine {
  * state::entryState "entryState" defined, it will not be entered. The user
  * must explicitly set the initial state.
  *
- * \param stateMachine the state machine to initialise.
- * \param initialState the initial state of the state machine.
- * \param errorState pointer to a state that acts a final state and notifies
- * the system/user that an error has occurred.
+ * \param [in] stateMachine the state machine to initialise.
+ * \param [in] initialState the initial state of the state machine.
+ * \param [in] errorState pointer to a state that acts a final state and
+ * notifies the system/user that an error has occurred.
  */
 void stateM_init(struct stateMachine *stateMachine, struct state *initialState,
 				 struct state *errorState);

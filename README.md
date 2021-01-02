@@ -13,12 +13,16 @@ $ mkdir build && cd build && cmake ..
 
 ### Optional build parameters
 
-- `STATE_MACHINE_DOCS`:
+- `STATE_MACHINE_DOCS`: Whether to generate doxygen documentation
   - Type: BOOLEAN
   - Default value: `TRUE` if invoking cmake from this repository, `FALSE`
     otherwise (e.g. when you're using this repository as submodule)
 
-- `STATE_MACHINE_EXAMPLE`:
+- `STATE_MACHINE_EXAMPLE`: Whether to build examples
+  - Type: BOOLEAN
+  - Default value: same as `STATE_MACHINE_DOCS`
+
+- `STATE_MACHINE_TEST`: Whether to build tests
   - Type: BOOLEAN
   - Default value: same as `STATE_MACHINE_DOCS`
 
