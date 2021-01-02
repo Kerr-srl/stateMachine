@@ -26,6 +26,10 @@ $ mkdir build && cd build && cmake ..
   - Type: BOOLEAN
   - Default value: same as `STATE_MACHINE_DOCS`
 
+- `STATE_MACHINE_COVERAGE`: Whether to generate test coverage report
+  - Type: BOOLEAN
+  - Default value: same as `STATE_MACHINE_DOCS`
+
 ### How to include this library
 
 Just include this repository using `add_subdirectory`.
