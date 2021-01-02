@@ -175,26 +175,30 @@ struct transition {
 	 * The user may choose to use this argument or not. Only if the result is
 	 * true, the transition will take place.
 	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
 	 * \param condition event (data) to compare the incoming event against.
 	 * \param event the event passed to the state machine.
 	 *
 	 * \returns true if the event's data fulfils the condition, otherwise false.
 	 */
-	bool (*guard)(void *condition, struct event *event);
+	bool (*guard)(void *sm_user_data, void *condition, struct event *event);
 	/**
 	 * \brief Function containing tasks to be performed during the transition
 	 *
 	 * The transition may optionally do some work in this function before
 	 * entering the next state. May be NULL.
 	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
 	 * \param currentStateData the leaving state's \ref state::data "data"
 	 * \param event the event passed to the state machine.
 	 * \param newStateData the new state's (the \ref state::entryState
 	 * "entryState" of any (chain of) parent states, not the parent state
 	 * itself) \ref state::data "data"
 	 */
-	void (*action)(void *currentStateData, struct event *event,
-				   void *newStateData);
+	void (*action)(void *sm_user_data, void *currentStateData,
+				   struct event *event, void *newStateData);
 	/**
 	 * \brief The next state
 	 *
@@ -319,10 +323,13 @@ struct state {
 	 * \note A group/parent state with its #entryState defined will not have
 	 * its #entryAction called.
 	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
 	 * \param stateData the state's #data will be passed.
 	 * \param event the event that triggered the transition will be passed.
 	 */
-	void (*entryAction)(void *stateData, struct event *event);
+	void (*entryAction)(void *sm_user_data, void *stateData,
+						struct event *event);
 	/**
 	 * \brief This function is called whenever the state is being left. May be
 	 * NULL.
@@ -330,10 +337,13 @@ struct state {
 	 * \note If a state returns to itself through a transition (either directly
 	 * or through a parent/group sate), its #exitAction will not be called.
 	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
 	 * \param stateData the state's #data will be passed.
 	 * \param event the event that triggered a transition will be passed.
 	 */
-	void (*exitAction)(void *stateData, struct event *event);
+	void (*exitAction)(void *sm_user_data, void *stateData,
+					   struct event *event);
 };
 
 /**
@@ -360,6 +370,12 @@ struct stateMachine {
 	 * error state.
 	 */
 	struct state *errorState;
+	/**
+	 * \brief Data that will be available for each state::entryAction "entry
+	 * action" and state::exitAction "exit action", and in any \ref
+	 * transition::action "transition action"
+	 */
+	void *user_data;
 };
 
 /**
@@ -384,7 +400,7 @@ struct stateMachine {
  * notifies the system/user that an error has occurred.
  */
 void stateM_init(struct stateMachine *stateMachine, struct state *initialState,
-				 struct state *errorState);
+				 struct state *errorState, void *user_data);
 
 /**
  * \brief stateM_handleEvent() return values
