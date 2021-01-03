@@ -4,7 +4,7 @@ add_library(${TARGET_NAME} STATIC "")
 add_library(${TARGET_NAME}::${TARGET_NAME} ALIAS ${TARGET_NAME})
 target_sources(${TARGET_NAME}
 	PRIVATE
-	stateMachine.c
+	sm_state_machine.c
 	)
 
 target_include_directories(${TARGET_NAME}

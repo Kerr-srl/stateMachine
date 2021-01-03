@@ -3,7 +3,7 @@
 #include "catch2/generators/catch_generators.hpp"
 #include "catch2/trompeloeil.hpp"
 
-#include "stateMachine.h"
+#include "sm_state_machine.h"
 #include "test_sm.h"
 #include "test_sm_mocks.hpp"
 
@@ -17,23 +17,23 @@ using expectation = std::unique_ptr<trompeloeil::expectation>;
 
 TEST_CASE("Initialization") {
 	SECTION("initialization shouldn't execute entry action") {
-		stateMachine sm;
+		sm_state_machine sm;
 		FORBID_CALL(mocks, s1_entry_action(_, _, _, _));
 		FORBID_CALL(mocks, s1_exit_action(_, _, _, _));
-		state_machine_hooks hooks;
-		stateM_init(&sm, &s1, &s_error, &hooks, nullptr);
+		sm_state_machine_hooks hooks;
+		sm_state_machine_init(&sm, &s1, &s_error, &hooks, nullptr);
 	}
 }
 
 TEST_CASE("State machine") {
 	void *fake_user_data = GENERATE(values<void *>({nullptr, (void *)12}));
-	stateMachine sm;
-	state_machine_hooks hooks;
-	stateM_init(&sm, &s1, &s_error, &hooks, fake_user_data);
+	sm_state_machine sm;
+	sm_state_machine_hooks hooks;
+	sm_state_machine_init(&sm, &s1, &s_error, &hooks, fake_user_data);
 
 	SECTION("guard, entry, transition and exit actions"
 			"callbacks") {
-		struct event event;
+		struct sm_event event;
 		event.data = nullptr;
 		event.type = event_s1_to_s2;
 		sequence seq;
@@ -49,7 +49,7 @@ TEST_CASE("State machine") {
 		REQUIRE_CALL(mocks,
 					 s2_entry_action(fake_user_data, nullptr, &event, nullptr))
 			.IN_SEQUENCE(seq);
-		stateM_handleEvent(&sm, &event);
+		sm_state_machine_handle_event(&sm, &event);
 	}
 }
 

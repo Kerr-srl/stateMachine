@@ -64,10 +64,10 @@
  * parent states
  */
 
-#ifndef STATEMACHINE_H
-#define STATEMACHINE_H
+#ifndef SM_STATE_MACHINE_H_
+#define SM_STATE_MACHINE_H_
 
-#include "state_machine_config.h"
+#include "sm_state_machine_config.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -86,7 +86,7 @@ extern "C" {
  * \sa state
  * \sa transition
  */
-struct event {
+struct sm_event {
 	/** \brief Type of event. Defined by user. */
 	int type;
 	/**
@@ -125,7 +125,7 @@ struct sm_guard {
 	 * \returns true if the event's data fulfils the condition, otherwise
 	 * false.
 	 */
-	bool (*fn)(void *sm_user_data, void *condition, struct event *event);
+	bool (*fn)(void *sm_user_data, void *condition, struct sm_event *event);
 };
 
 #if SM_STATE_MACHINE_ENABLE_LOG
@@ -160,11 +160,11 @@ struct sm_action {
 	 * passed
 	 * \param currentStateData the leaving state's \ref state::data "data"
 	 * \param event the event passed to the state machine.
-	 * \param newStateData the new state's (the \ref state::entryState
-	 * "entryState" of any (chain of) parent states, not the parent state
+	 * \param newStateData the new state's (the \ref state::entry_state
+	 * "entry_state" of any (chain of) parent states, not the parent state
 	 * itself) \ref state::data "data"
 	 */
-	void (*fn)(void *sm_user_data, void *currentStateData, struct event *event,
+	void (*fn)(void *sm_user_data, void *currentStateData, struct sm_event *event,
 			   void *newStateData);
 };
 
@@ -180,7 +180,7 @@ struct sm_action {
 	}
 #endif
 
-struct state;
+struct sm_state;
 
 /**
  * \brief Transition between a state and another state
@@ -224,7 +224,7 @@ struct transition {
 	 * NULL. If it is, the state machine will detect it and enter the \ref
 	 * stateMachine::errorState "error state".
 	 */
-	struct state *nextState;
+	struct sm_state *nextState;
 };
 
 /**
@@ -238,9 +238,9 @@ struct transition {
  * will be called. An optional \ref transition::action "transition action" is
  * called in either case.
  *
- * States may be organised in a hierarchy by setting \ref #parentState
+ * States may be organised in a hierarchy by setting \ref #parent_state
  * "parent states". When a group/parent state is entered, the state machine is
- * redirected to the group state's \ref #entryState "entry state" (if
+ * redirected to the group state's \ref #entry_state "entry state" (if
  * non-NULL). If an event does not trigger a transition in a state and if the
  * state has a parent state, the event will be passed to the parent state.
  * This behaviour is repeated for all parents. Thus all children of a state
@@ -253,8 +253,8 @@ struct transition {
  * ### Normal state ###
  * ~~~{.c}
  * struct state normalState = {
- *    .parentState = &groupState,
- *    .entryState = NULL,
+ *    .parent_state = &groupState,
+ *    .entry_state = NULL,
  *    .transition = (struct transition[]){
  *       { Event_keyboard, (void *)(intptr_t)'\n', &compareKeyboardChar,
  *          NULL, &msgReceivedState },
@@ -266,26 +266,26 @@ struct transition {
  * };
  * ~~~
  * In this example, `normalState` is a child of `groupState`, but the
- * #parentState value may also be NULL to indicate that it is not a child of
+ * #parent_state value may also be NULL to indicate that it is not a child of
  * any group state.
  *
  * ### Group/parent state ###
  * A state becomes a group/parent state when it is linked to by child states
- * by using #parentState. No members in the group state need to be set in a
+ * by using #parent_state. No members in the group state need to be set in a
  * particular way. A parent state may also have a parent.
  * ~~~{.c}
  * struct state groupState = {
- *    .entryState = &normalState,
+ *    .entry_state = &normalState,
  *    .entryAction = NULL,
  * ~~~
  * If there are any transitions in the state machine that lead to a group
  * state, it makes sense to define an entry state in the group. This can be
- * done by using #entryState, but it is not mandatory. If the #entryState
+ * done by using #entry_state, but it is not mandatory. If the #entry_state
  * state has children, the chain of children will be traversed until a child
- * with its #entryState set to NULL is found.
+ * with its #entry_state set to NULL is found.
  *
- * \note If #entryState is defined for a group state, the group state's
- * #entryAction will not be called (the state pointed to by #entryState (after
+ * \note If #entry_state is defined for a group state, the group state's
+ * #entryAction will not be called (the state pointed to by #entry_state (after
  * following the chain of children), however, will have its #entryAction
  * called).
  *
@@ -308,16 +308,16 @@ struct transition {
  * \sa event
  * \sa transition
  */
-struct state {
+struct sm_state {
 	/**
 	 * \brief If the state has a parent state, this pointer must be non-NULL.
 	 */
-	struct state *parentState;
+	struct sm_state *parent_state;
 	/**
 	 * \brief If this state is a parent state, this pointer may point to a
 	 * child state that serves as an entry point.
 	 */
-	struct state *entryState;
+	struct sm_state *entry_state;
 	/**
 	 * \brief An array of transitions for the state.
 	 */
@@ -325,7 +325,7 @@ struct state {
 	/**
 	 * \brief Number of transitions in the #transitions array.
 	 */
-	size_t numTransitions;
+	size_t num_transitions;
 	/**
 	 * \brief Data that will be available for the state in its #entryAction and
 	 * #exit_action, and in any \ref transition::action "transition action"
@@ -352,22 +352,22 @@ struct state {
 	struct sm_action *exit_action;
 };
 
-struct stateMachine;
+struct sm_state_machine;
 
 /**
  * \brief State machine hooks
  *
  * Set of hooks that the application should provide to this library
  */
-struct state_machine_hooks {
+struct sm_state_machine_hooks {
 #if SM_STATE_MACHINE_ENABLE_LOG
 	struct state_machine_logger {
-		void (*log_transition)(const struct stateMachine *stateMachine,
-							   const struct event *ev,
+		void (*log_transition)(const struct sm_state_machine *stateMachine,
+							   const struct sm_event *ev,
 							   const struct sm_guard *guard, bool guard_passed,
-							   const struct state *current_state,
+							   const struct sm_state *current_state,
 							   const struct sm_action *transition_action,
-							   const struct state *next_state);
+							   const struct sm_state *next_state);
 	} * logger;
 #endif
 };
@@ -378,16 +378,16 @@ struct state_machine_hooks {
  * Treat this struct as an opaque type. Don't manipulate the
  * members directly.
  */
-struct stateMachine {
+struct sm_state_machine {
 	/** \brief Pointer to the current state */
-	struct state *currentState;
+	struct sm_state *current_state;
 	/**
 	 * \brief Pointer to previous state
 	 *
 	 * The previous state is stored for convenience in case the user needs to
 	 * keep track of previous states.
 	 */
-	struct state *previousState;
+	struct sm_state *previous_state;
 	/**
 	 * \brief Pointer to a state that will be entered whenever an error occurs
 	 * in the state machine.
@@ -395,11 +395,11 @@ struct stateMachine {
 	 * See #stateM_errorStateReached for when the state machine enters the
 	 * error state.
 	 */
-	struct state *errorState;
+	struct sm_state *error_state;
 	/**
 	 * \brief Application hooks
 	 */
-	struct state_machine_hooks hooks;
+	struct sm_state_machine_hooks hooks;
 	/**
 	 * \brief Data that will be available for each state::entryAction "entry
 	 * action" and state::exit_action "exit action", and in any \ref
@@ -421,7 +421,7 @@ struct stateMachine {
  * will not be called.
  *
  * \note If \pn{initialState} is a parent state with its \ref
- * state::entryState "entryState" defined, it will not be entered. The user
+ * state::entry_state "entry_state" defined, it will not be entered. The user
  * must explicitly set the initial state.
  *
  * \param [in] stateMachine the state machine to initialise.
@@ -432,8 +432,8 @@ struct stateMachine {
  * \param [in] user_data pointer to user defined data that will be passed in
  * every action and guard
  */
-void stateM_init(struct stateMachine *stateMachine, struct state *initialState,
-				 struct state *errorState, struct state_machine_hooks *hooks,
+void sm_state_machine_init(struct sm_state_machine *stateMachine, struct sm_state *initial_state,
+				 struct sm_state *errorState, struct sm_state_machine_hooks *hooks,
 				 void *user_data);
 
 /**
@@ -462,7 +462,7 @@ enum stateM_handleEventRetVals {
 	 *
 	 * The state can return to itself either directly or indirectly. An
 	 * indirect path may inlude a transition from a parent state and the use of
-	 * \ref state::entryState "entryStates".
+	 * \ref state::entry_state "entry_states".
 	 */
 	stateM_stateLoopSelf,
 	/**
@@ -495,7 +495,7 @@ enum stateM_handleEventRetVals {
  *
  * \return #stateM_handleEventRetVals
  */
-int stateM_handleEvent(struct stateMachine *stateMachine, struct event *event);
+int sm_state_machine_handle_event(struct sm_state_machine *stateMachine, struct sm_event *event);
 
 /**
  * \brief Get the current state
@@ -505,7 +505,7 @@ int stateM_handleEvent(struct stateMachine *stateMachine, struct event *event);
  * \retval a pointer to the current state.
  * \retval NULL if \pn{stateMachine} is NULL.
  */
-struct state *stateM_currentState(struct stateMachine *stateMachine);
+struct sm_state *sm_state_machine_current_state(struct sm_state_machine *stateMachine);
 
 /**
  * \brief Get the previous state
@@ -516,7 +516,7 @@ struct state *stateM_currentState(struct stateMachine *stateMachine);
  * \retval NULL if \pn{stateMachine} is NULL.
  * \retval NULL if there has not yet been any transitions.
  */
-struct state *stateM_previousState(struct stateMachine *stateMachine);
+struct sm_state *sm_state_machine_previous_state(struct sm_state_machine *stateMachine);
 
 /**
  * \brief Check if the state machine has stopped
@@ -527,13 +527,13 @@ struct state *stateM_previousState(struct stateMachine *stateMachine);
  * \retval false if \pn{stateMachine} is NULL or if the current state is not a
  * final state.
  */
-bool stateM_stopped(struct stateMachine *stateMachine);
+bool sm_state_machine_stopped(struct sm_state_machine *stateMachine);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // STATEMACHINE_H
+#endif // SM_STATE_MACHINE_H_
 
 /**
  * @}

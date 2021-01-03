@@ -20,44 +20,44 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "stateMachine.h"
+#include "sm_state_machine.h"
 
 #include <assert.h>
 
-static void goToErrorState(struct stateMachine *stateMachine,
-						   struct event *const event);
-static struct transition *getTransition(struct stateMachine *stateMachine,
-										struct state *state,
-										struct event *const event);
+static void goToErrorState(struct sm_state_machine *stateMachine,
+						   struct sm_event *const event);
+static struct transition *getTransition(struct sm_state_machine *stateMachine,
+										struct sm_state *state,
+										struct sm_event *const event);
 
-void stateM_init(struct stateMachine *fsm, struct state *initialState,
-				 struct state *errorState, struct state_machine_hooks *hooks,
-				 void *user_data) {
-	assert(initialState != NULL);
-	assert(errorState != NULL);
+void sm_state_machine_init(struct sm_state_machine *fsm, struct sm_state *initial_state,
+				 struct sm_state *error_state,
+				 struct sm_state_machine_hooks *hooks, void *user_data) {
+	assert(initial_state != NULL);
+	assert(error_state != NULL);
 	assert(fsm != NULL);
 	assert(hooks != NULL);
 
-	fsm->currentState = initialState;
-	fsm->previousState = NULL;
-	fsm->errorState = errorState;
+	fsm->current_state = initial_state;
+	fsm->previous_state = NULL;
+	fsm->error_state = error_state;
 	fsm->hooks = *hooks;
 	fsm->user_data = user_data;
 }
 
-int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
+int sm_state_machine_handle_event(struct sm_state_machine *fsm, struct sm_event *event) {
 	if (!fsm || !event)
 		return stateM_errArg;
 
-	if (!fsm->currentState) {
+	if (!fsm->current_state) {
 		goToErrorState(fsm, event);
 		return stateM_errorStateReached;
 	}
 
-	if (!fsm->currentState->numTransitions)
+	if (!fsm->current_state->num_transitions)
 		return stateM_noStateChange;
 
-	struct state *nextState = fsm->currentState;
+	struct sm_state *nextState = fsm->current_state;
 	do {
 		struct transition *transition = getTransition(fsm, nextState, event);
 
@@ -65,7 +65,7 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 		 * state, check if there are any transitions for any of the parent
 		 * states (if any): */
 		if (!transition) {
-			nextState = nextState->parentState;
+			nextState = nextState->parent_state;
 			continue;
 		}
 
@@ -86,7 +86,7 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 		if (fsm->hooks.logger && fsm->hooks.logger->log_transition) {
 			fsm->hooks.logger->log_transition(
 				fsm, event, transition->guard, !guard_rejected,
-				fsm->currentState, transition->action, transition->nextState);
+				fsm->current_state, transition->action, transition->nextState);
 		}
 #endif
 		if (guard_rejected) {
@@ -98,44 +98,44 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 		/* If the new state is a parent state, enter its entry state (if it has
 		 * one). Step down through the whole family tree until a state without
 		 * an entry state is found: */
-		while (nextState->entryState)
-			nextState = nextState->entryState;
+		while (nextState->entry_state)
+			nextState = nextState->entry_state;
 
 		/* Run exit action only if the current state is left (only if it does
 		 * not return to itself): */
-		if (nextState != fsm->currentState && fsm->currentState->exit_action)
-			fsm->currentState->exit_action->fn(fsm->user_data,
-											   fsm->currentState->data, event,
+		if (nextState != fsm->current_state && fsm->current_state->exit_action)
+			fsm->current_state->exit_action->fn(fsm->user_data,
+											   fsm->current_state->data, event,
 											   nextState->data);
 
 		/* Run transition action (if any): */
 		if (transition->action) {
 			assert(transition->action->fn);
-			transition->action->fn(fsm->user_data, fsm->currentState->data,
+			transition->action->fn(fsm->user_data, fsm->current_state->data,
 								   event, nextState->data);
 		}
 
 		/* Call the new state's entry action if it has any (only if state does
 		 * not return to itself): */
-		if (nextState != fsm->currentState && nextState->entry_action) {
+		if (nextState != fsm->current_state && nextState->entry_action) {
 			assert(nextState->entry_action->fn);
-			nextState->entry_action->fn(fsm->user_data, fsm->currentState->data,
+			nextState->entry_action->fn(fsm->user_data, fsm->current_state->data,
 										event, nextState->data);
 		}
 
-		fsm->previousState = fsm->currentState;
-		fsm->currentState = nextState;
+		fsm->previous_state = fsm->current_state;
+		fsm->current_state = nextState;
 
 		/* If the state returned to itself: */
-		if (fsm->currentState == fsm->previousState)
+		if (fsm->current_state == fsm->previous_state)
 			return stateM_stateLoopSelf;
 
-		if (fsm->currentState == fsm->errorState)
+		if (fsm->current_state == fsm->error_state)
 			return stateM_errorStateReached;
 
 		/* If the new state is a final state, notify user that the state
 		 * machine has stopped: */
-		if (!fsm->currentState->numTransitions)
+		if (!fsm->current_state->num_transitions)
 			return stateM_finalStateReached;
 
 		return stateM_stateChanged;
@@ -144,38 +144,38 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 	return stateM_noStateChange;
 }
 
-struct state *stateM_currentState(struct stateMachine *fsm) {
+struct sm_state *sm_state_machine_current_state(struct sm_state_machine *fsm) {
 	if (!fsm)
 		return NULL;
 
-	return fsm->currentState;
+	return fsm->current_state;
 }
 
-struct state *stateM_previousState(struct stateMachine *fsm) {
+struct sm_state *sm_state_machine_previous_state(struct sm_state_machine *fsm) {
 	if (!fsm)
 		return NULL;
 
-	return fsm->previousState;
+	return fsm->previous_state;
 }
 
-static void goToErrorState(struct stateMachine *fsm,
-						   struct event *const event) {
-	fsm->previousState = fsm->currentState;
-	fsm->currentState = fsm->errorState;
+static void goToErrorState(struct sm_state_machine *fsm,
+						   struct sm_event *const event) {
+	fsm->previous_state = fsm->current_state;
+	fsm->current_state = fsm->error_state;
 
-	if (fsm->currentState && fsm->currentState->entry_action) {
-		fsm->currentState->entry_action->fn(fsm->user_data,
-											fsm->previousState->data, event,
-											fsm->currentState->data);
+	if (fsm->current_state && fsm->current_state->entry_action) {
+		fsm->current_state->entry_action->fn(fsm->user_data,
+											fsm->previous_state->data, event,
+											fsm->current_state->data);
 	}
 }
 
-static struct transition *getTransition(struct stateMachine *fsm,
-										struct state *state,
-										struct event *const event) {
+static struct transition *getTransition(struct sm_state_machine *fsm,
+										struct sm_state *state,
+										struct sm_event *const event) {
 	size_t i;
 
-	for (i = 0; i < state->numTransitions; ++i) {
+	for (i = 0; i < state->num_transitions; ++i) {
 		struct transition *t = &state->transitions[i];
 
 		/* A transition for the given event has been found: */
@@ -188,9 +188,9 @@ static struct transition *getTransition(struct stateMachine *fsm,
 	return NULL;
 }
 
-bool stateM_stopped(struct stateMachine *stateMachine) {
+bool sm_state_machine_stopped(struct sm_state_machine *stateMachine) {
 	if (!stateMachine)
 		return true;
 
-	return stateMachine->currentState->numTransitions == 0;
+	return stateMachine->current_state->num_transitions == 0;
 }

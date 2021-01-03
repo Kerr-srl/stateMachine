@@ -20,7 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "stateMachine.h"
+#include "state_machine.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,15 +69,15 @@ struct eventPayload {
 	const char *expectedState;
 };
 
-static void entryAction(void *stateData, struct event *event);
-static void exitAction(void *stateData, struct event *event);
-static void transAction(void *oldStateData, struct event *event,
+static void entryAction(void *stateData, struct sm_event *event);
+static void exitAction(void *stateData, struct sm_event *event);
+static void transAction(void *oldStateData, struct sm_event *event,
 						void *newStateData);
-static bool guard(void *condition, struct event *event);
+static bool guard(void *condition, struct sm_event *event);
 
-static struct state s1, s2, s3, s4, s5, s6, s9, s10, s11, sE;
+static struct sm_state s1, s2, s3, s4, s5, s6, s9, s10, s11, sE;
 
-static struct state
+static struct sm_state
 
 	s1 =
 		{
@@ -90,7 +90,7 @@ static struct state
 					 &s3},
 				},
 			.numTransitions = 1,
-			.parentState = &s9,
+			.parent_state = &s9,
 },
 
 	s2 =
@@ -117,7 +117,7 @@ static struct state
 					 &s11},
 				},
 			.numTransitions = 1,
-			.parentState = &s10,
+			.parent_state = &s10,
 },
 
 	s4 =
@@ -133,7 +133,7 @@ static struct state
 					 &s9},
 				},
 			.numTransitions = 2,
-			.parentState = &s11,
+			.parent_state = &s11,
 },
 
 	s5 =
@@ -147,7 +147,7 @@ static struct state
 					{Event_dummy, NULL, NULL, &transAction, &s10},
 				},
 			.numTransitions = 1,
-			.parentState = &s11,
+			.parent_state = &s11,
 },
 
 	s6 =
@@ -162,7 +162,7 @@ static struct state
 			.data = "9",
 			.entryAction = &entryAction,
 			.exitAction = &exitAction,
-			.entryState = &s4,
+			.entry_state = &s4,
 			.transitions =
 				(struct transition[]){
 					{Event_dummy, (void *)(intptr_t)'a', &guard, &transAction,
@@ -176,7 +176,7 @@ static struct state
 			.data = "10",
 			.entryAction = &entryAction,
 			.exitAction = &exitAction,
-			.entryState = &s9,
+			.entry_state = &s9,
 			.transitions =
 				(struct transition[]){
 					{Event_dummy, (void *)(intptr_t)'f', &guard, &transAction,
@@ -185,7 +185,7 @@ static struct state
 					 &s6},
 				},
 			.numTransitions = 2,
-			.parentState = &s9,
+			.parent_state = &s9,
 },
 
 	s11 =
@@ -193,14 +193,14 @@ static struct state
 			.data = "11",
 			.entryAction = &entryAction,
 			.exitAction = &exitAction,
-			.entryState = &s5,
+			.entry_state = &s5,
 			.transitions =
 				(struct transition[]){
 					{Event_dummy, (void *)(intptr_t)'g', &guard, &transAction,
 					 &s2},
 				},
 			.numTransitions = 1,
-			.parentState = &s10,
+			.parent_state = &s10,
 },
 
 	sE = {
@@ -209,10 +209,10 @@ static struct state
 };
 
 int main() {
-	struct stateMachine fsm;
+	struct sm_state_machine fsm;
 	stateM_init(&fsm, &s1, &sE);
 
-	struct event events[] = {
+	struct sm_event events[] = {
 		/* Create transitions, with the single character as triggering event
 		 * data, and the expected new state name as the following string. '*' is
 		 * used when the unconditional transition will be followed. */
@@ -241,7 +241,7 @@ int main() {
 
 	/* Hand all but the last event to the state machine: */
 	for (i = 0; i < sizeof(events) / sizeof(events[0]) - 1; ++i) {
-		res = stateM_handleEvent(&fsm, &events[i]);
+		res = sm_state_machine_handle_event(&fsm, &events[i]);
 		if (res == stateM_stateLoopSelf) {
 			/* Prevent segmentation faults (due to the following comparison)
 			 * (loops will not be tested in the first transition): */
@@ -275,7 +275,7 @@ int main() {
 
 	/* The last state change is expected to result in a transition to a final
 	 * state: */
-	res = stateM_handleEvent(&fsm, &events[i]);
+	res = sm_state_machine_handle_event(&fsm, &events[i]);
 	if (res != stateM_finalStateReached) {
 		fprintf(stderr,
 				"Unexpected return value from stateM_handleEvent:"
@@ -288,19 +288,19 @@ int main() {
 	return 0;
 }
 
-static void entryAction(void *stateData, struct event *event) {
+static void entryAction(void *stateData, struct sm_event *event) {
 	const char *stateName = (const char *)stateData;
 
 	printf("Entering %s\n", stateName);
 }
 
-static void exitAction(void *stateData, struct event *event) {
+static void exitAction(void *stateData, struct sm_event *event) {
 	const char *stateName = (const char *)stateData;
 
 	printf("Exiting %s\n", stateName);
 }
 
-static void transAction(void *oldStateData, struct event *event,
+static void transAction(void *oldStateData, struct sm_event *event,
 						void *newStateData) {
 	struct eventPayload *eventData = (struct eventPayload *)event->data;
 
@@ -313,7 +313,7 @@ static void transAction(void *oldStateData, struct event *event,
 	}
 }
 
-static bool guard(void *condition, struct event *event) {
+static bool guard(void *condition, struct sm_event *event) {
 	struct eventPayload *eventData = (struct eventPayload *)event->data;
 
 	return (intptr_t)condition == (intptr_t)eventData->data;
