@@ -18,10 +18,11 @@ project(state-machine VERSION 0.1.0
 	LANGUAGES C CXX
 	)
 
-add_subdirectory(src)
 add_subdirectory(doc)
 add_subdirectory(examples)
 if (STATE_MACHINE_TEST)
 	enable_testing()
 	add_subdirectory(tests)
+else()
+	add_subdirectory(src)
 endif()

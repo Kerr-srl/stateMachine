@@ -14,15 +14,18 @@ $ mkdir build && cd build && cmake ..
 ### Optional build parameters
 
 - `STATE_MACHINE_DOCS`: Whether to generate doxygen documentation
+
   - Type: BOOLEAN
   - Default value: `TRUE` if invoking cmake from this repository, `FALSE`
     otherwise (e.g. when you're using this repository as submodule)
 
 - `STATE_MACHINE_EXAMPLE`: Whether to build examples
+
   - Type: BOOLEAN
   - Default value: same as `STATE_MACHINE_DOCS`
 
 - `STATE_MACHINE_TEST`: Whether to build tests
+
   - Type: BOOLEAN
   - Default value: same as `STATE_MACHINE_DOCS`
 
@@ -36,3 +39,8 @@ Just include this repository using `add_subdirectory`.
 
 You can use the static library target `state-machine::state-machine` in your
 CMake project.
+
+Before using `add_subdirectory`, you can define a interface target called
+
+- `state-machine::config`: A INTERFACE target that can contain compile
+  definitions to override the configuration in `src/state_machine_config.h`

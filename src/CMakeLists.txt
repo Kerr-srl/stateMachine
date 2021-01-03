@@ -22,3 +22,10 @@ if (${STATE_MACHINE_COVERAGE})
 		gcov
 		)
 endif()
+
+if (TARGET ${PROJECT_NAME}::config)
+	target_link_libraries(${TARGET_NAME}
+		PUBLIC
+		${PROJECT_NAME}::config
+		)
+endif()

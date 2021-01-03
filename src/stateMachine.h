@@ -67,6 +67,8 @@
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 
+#include "state_machine_config.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -97,6 +99,87 @@ struct event {
 	void *data;
 };
 
+/**
+ * \brief Guard
+ *
+ * Guards check if a transition is allowed at the moment
+ */
+struct sm_guard {
+#if SM_STATE_MACHINE_ENABLE_LOG
+	const char *name;
+#endif
+	/**
+	 * \brief Check if data passed with event fulfils a condition
+	 *
+	 * A transition may be conditional. If so, this function, if non-NULL,
+	 * will be called. Its first argument will be supplied with #condition,
+	 * which can be compared against the \ref event::data "payload" in the
+	 * #event. The user may choose to use this argument or not. Only if the
+	 * result is true, the transition will take place.
+	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
+	 * \param condition event (data) to compare the incoming event against.
+	 * \param event the event passed to the state machine.
+	 *
+	 * \returns true if the event's data fulfils the condition, otherwise
+	 * false.
+	 */
+	bool (*fn)(void *sm_user_data, void *condition, struct event *event);
+};
+
+#if SM_STATE_MACHINE_ENABLE_LOG
+#define SM_STATE_MACHINE_GUARD(_fn_)                                           \
+	(struct sm_guard) {                                                        \
+		.name = #_fn_, .fn = _fn_                                              \
+	}
+#else
+#define SM_STATE_MACHINE_GUARD(_fn_)                                           \
+	(struct sm_guard) {                                                        \
+		.fn = _fn_                                                             \
+	}
+#endif
+
+/**
+ * \brief Action
+ *
+ * Functions that are executed on state change
+ */
+struct sm_action {
+#if SM_STATE_MACHINE_ENABLE_LOG
+	const char *name;
+#endif
+	/**
+	 * \brief Function containing tasks to be performed during the
+	 * transition
+	 *
+	 * The transition may optionally do some work in this function before
+	 * entering the next state. May be NULL.
+	 *
+	 * \param [in] sm_user_data the user data passed in #stateM_init will be
+	 * passed
+	 * \param currentStateData the leaving state's \ref state::data "data"
+	 * \param event the event passed to the state machine.
+	 * \param newStateData the new state's (the \ref state::entryState
+	 * "entryState" of any (chain of) parent states, not the parent state
+	 * itself) \ref state::data "data"
+	 */
+	void (*fn)(void *sm_user_data, void *currentStateData, struct event *event,
+			   void *newStateData);
+};
+
+#if SM_STATE_MACHINE_ENABLE_LOG
+#define SM_STATE_MACHINE_ACTION(_fn_)                                          \
+	(struct sm_action) {                                                       \
+		.name = #_fn_, .fn = _fn_                                              \
+	}
+#else
+#define SM_STATE_MACHINE_ACTION(_fn_)                                          \
+	(struct sm_action) {                                                       \
+		.fn = _fn_                                                             \
+	}
+#endif
+
 struct state;
 
 /**
@@ -113,43 +196,9 @@ struct state;
  *
  * It is perfectly valid for a transition to return to the state it belongs
  * to. Such a transition will not call the state's \ref state::entryAction
- * "entry action" or \ref state::exitAction "exit action". If there are no
+ * "entry action" or \ref state::exit_action "exit action". If there are no
  * transitions for the current event, the state's parent will be handed the
  * event.
- *
- * ### Examples ###
- * - An ungarded transition to a state with no action performed:
- * ~~~{.c}
- * {
- *    .eventType = Event_timeout,
- *    .condition = NULL,
- *    .guard = NULL,
- *    .action = NULL,
- *    .nextState = &mainMenuState,
- * },
- * ~~~
- * - A guarded transition executing an action
- * ~~~{.c}
- * {
- *    .eventType = Event_keyboard,
- *    .condition = NULL,
- *    .guard = &ensureNumericInput,
- *    .action = &addToBuffer,
- *    .nextState = &awaitingInputState,
- * },
- * ~~~
- * - A guarded transition using a condition
- * ~~~{.c}
- * {
- *    .eventType = Event_mouse,
- *    .condition = boxLimits,
- *    .guard = &coordinatesWithinLimits,
- * },
- * ~~~
- * By using \ref #condition "conditions" a more general guard function can be
- * used, operating on the supplied argument #condition. In this example,
- * `coordinatesWithinLimits` checks whether the coordinates in the mouse event
- * are within the limits of the "box".
  *
  * \sa event
  * \sa state
@@ -166,39 +215,8 @@ struct transition {
 	 * number of #guard functions can be minimised by making them more general.
 	 */
 	void *condition;
-	/**
-	 * \brief Check if data passed with event fulfils a condition
-	 *
-	 * A transition may be conditional. If so, this function, if non-NULL, will
-	 * be called. Its first argument will be supplied with #condition, which
-	 * can be compared against the \ref event::data "payload" in the #event.
-	 * The user may choose to use this argument or not. Only if the result is
-	 * true, the transition will take place.
-	 *
-	 * \param [in] sm_user_data the user data passed in #stateM_init will be
-	 * passed
-	 * \param condition event (data) to compare the incoming event against.
-	 * \param event the event passed to the state machine.
-	 *
-	 * \returns true if the event's data fulfils the condition, otherwise false.
-	 */
-	bool (*guard)(void *sm_user_data, void *condition, struct event *event);
-	/**
-	 * \brief Function containing tasks to be performed during the transition
-	 *
-	 * The transition may optionally do some work in this function before
-	 * entering the next state. May be NULL.
-	 *
-	 * \param [in] sm_user_data the user data passed in #stateM_init will be
-	 * passed
-	 * \param currentStateData the leaving state's \ref state::data "data"
-	 * \param event the event passed to the state machine.
-	 * \param newStateData the new state's (the \ref state::entryState
-	 * "entryState" of any (chain of) parent states, not the parent state
-	 * itself) \ref state::data "data"
-	 */
-	void (*action)(void *sm_user_data, void *currentStateData,
-				   struct event *event, void *newStateData);
+	struct sm_guard *guard;
+	struct sm_action *action;
 	/**
 	 * \brief The next state
 	 *
@@ -214,9 +232,9 @@ struct transition {
  *
  * The current state in a state machine moves to a new state when one of the
  * #transitions in the current state triggers on an event. An optional \ref
- * #exitAction "exit action" is called when the state is left, and an \ref
+ * #exit_action "exit action" is called when the state is left, and an \ref
  * #entryAction "entry action" is called when the state machine enters a new
- * state. If a state returns to itself, neither #exitAction nor #entryAction
+ * state. If a state returns to itself, neither #exit_action nor #entryAction
  * will be called. An optional \ref transition::action "transition action" is
  * called in either case.
  *
@@ -244,7 +262,7 @@ struct transition {
  *    .numTransitions = 1,
  *    .data = normalStateData,
  *    .entryAction = &doSomething,
- *    .exitAction = &cleanUp,
+ *    .exit_action = &cleanUp,
  * };
  * ~~~
  * In this example, `normalState` is a child of `groupState`, but the
@@ -310,40 +328,48 @@ struct state {
 	size_t numTransitions;
 	/**
 	 * \brief Data that will be available for the state in its #entryAction and
-	 * #exitAction, and in any \ref transition::action "transition action"
+	 * #exit_action, and in any \ref transition::action "transition action"
 	 */
 	void *data;
 	/**
-	 * \brief This function is called whenever the state is being entered. May
+	 * \brief This action is executed whenever the state is being entered. May
 	 * be NULL.
 	 *
 	 * \note If a state returns to itself through a transition (either directly
-	 * or through a parent/group sate), its #entryAction will not be called.
+	 * or through a parent/group sate), its #entry_action will not be called.
 	 *
-	 * \note A group/parent state with its #entryState defined will not have
-	 * its #entryAction called.
-	 *
-	 * \param [in] sm_user_data the user data passed in #stateM_init will be
-	 * passed
-	 * \param stateData the state's #data will be passed.
-	 * \param event the event that triggered the transition will be passed.
+	 * \note A group/parent state with its #entry_state defined will not have
+	 * its #entry_action called.
 	 */
-	void (*entryAction)(void *sm_user_data, void *stateData,
-						struct event *event);
+	struct sm_action *entry_action;
 	/**
-	 * \brief This function is called whenever the state is being left. May be
+	 * \brief This action is called whenever the state is being left. May be
 	 * NULL.
 	 *
 	 * \note If a state returns to itself through a transition (either directly
-	 * or through a parent/group sate), its #exitAction will not be called.
-	 *
-	 * \param [in] sm_user_data the user data passed in #stateM_init will be
-	 * passed
-	 * \param stateData the state's #data will be passed.
-	 * \param event the event that triggered a transition will be passed.
+	 * or through a parent/group sate), its #exit_action will not be called.
 	 */
-	void (*exitAction)(void *sm_user_data, void *stateData,
-					   struct event *event);
+	struct sm_action *exit_action;
+};
+
+struct stateMachine;
+
+/**
+ * \brief State machine hooks
+ *
+ * Set of hooks that the application should provide to this library
+ */
+struct state_machine_hooks {
+#if SM_STATE_MACHINE_ENABLE_LOG
+	struct state_machine_logger {
+		void (*log_transition)(const struct stateMachine *stateMachine,
+							   const struct event *ev,
+							   const struct sm_guard *guard, bool guard_passed,
+							   const struct state *current_state,
+							   const struct sm_action *transition_action,
+							   const struct state *next_state);
+	} * logger;
+#endif
 };
 
 /**
@@ -371,8 +397,12 @@ struct stateMachine {
 	 */
 	struct state *errorState;
 	/**
+	 * \brief Application hooks
+	 */
+	struct state_machine_hooks hooks;
+	/**
 	 * \brief Data that will be available for each state::entryAction "entry
-	 * action" and state::exitAction "exit action", and in any \ref
+	 * action" and state::exit_action "exit action", and in any \ref
 	 * transition::action "transition action"
 	 */
 	void *user_data;
@@ -398,9 +428,13 @@ struct stateMachine {
  * \param [in] initialState the initial state of the state machine.
  * \param [in] errorState pointer to a state that acts a final state and
  * notifies the system/user that an error has occurred.
+ * \param [in] hooks pointer to the state machine hooks
+ * \param [in] user_data pointer to user defined data that will be passed in
+ * every action and guard
  */
 void stateM_init(struct stateMachine *stateMachine, struct state *initialState,
-				 struct state *errorState, void *user_data);
+				 struct state *errorState, struct state_machine_hooks *hooks,
+				 void *user_data);
 
 /**
  * \brief stateM_handleEvent() return values
@@ -449,7 +483,7 @@ enum stateM_handleEventRetVals {
  * state's parent states (if any). If the event triggers a transition, a new
  * state will be entered. If the transition has an \ref transition::action
  * "action" defined, it will be called. If the transition is to a state other
- * than the current state, the current state's \ref state::exitAction
+ * than the current state, the current state's \ref state::exit_action
  * "exit action" is called (if defined). Likewise, if the state is a new
  * state, the new state's \ref state::entryAction "entry action" is called (if
  * defined).

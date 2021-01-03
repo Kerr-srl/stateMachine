@@ -31,14 +31,17 @@ static struct transition *getTransition(struct stateMachine *stateMachine,
 										struct event *const event);
 
 void stateM_init(struct stateMachine *fsm, struct state *initialState,
-				 struct state *errorState, void *user_data) {
+				 struct state *errorState, struct state_machine_hooks *hooks,
+				 void *user_data) {
 	assert(initialState != NULL);
 	assert(errorState != NULL);
 	assert(fsm != NULL);
+	assert(hooks != NULL);
 
 	fsm->currentState = initialState;
 	fsm->previousState = NULL;
 	fsm->errorState = errorState;
+	fsm->hooks = *hooks;
 	fsm->user_data = user_data;
 }
 
@@ -73,6 +76,23 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 			return stateM_errorStateReached;
 		}
 
+		bool guard_rejected = false;
+		if (transition->guard &&
+			!transition->guard->fn(fsm->user_data, transition->condition,
+								   event)) {
+			guard_rejected = true;
+		}
+#if SM_STATE_MACHINE_ENABLE_LOG
+		if (fsm->hooks.logger && fsm->hooks.logger->log_transition) {
+			fsm->hooks.logger->log_transition(
+				fsm, event, transition->guard, !guard_rejected,
+				fsm->currentState, transition->action, transition->nextState);
+		}
+#endif
+		if (guard_rejected) {
+			continue;
+		}
+
 		nextState = transition->nextState;
 
 		/* If the new state is a parent state, enter its entry state (if it has
@@ -83,19 +103,25 @@ int stateM_handleEvent(struct stateMachine *fsm, struct event *event) {
 
 		/* Run exit action only if the current state is left (only if it does
 		 * not return to itself): */
-		if (nextState != fsm->currentState && fsm->currentState->exitAction)
-			fsm->currentState->exitAction(fsm->user_data,
-										  fsm->currentState->data, event);
+		if (nextState != fsm->currentState && fsm->currentState->exit_action)
+			fsm->currentState->exit_action->fn(fsm->user_data,
+											   fsm->currentState->data, event,
+											   nextState->data);
 
 		/* Run transition action (if any): */
-		if (transition->action)
-			transition->action(fsm->user_data, fsm->currentState->data, event,
-							   nextState->data);
+		if (transition->action) {
+			assert(transition->action->fn);
+			transition->action->fn(fsm->user_data, fsm->currentState->data,
+								   event, nextState->data);
+		}
 
 		/* Call the new state's entry action if it has any (only if state does
 		 * not return to itself): */
-		if (nextState != fsm->currentState && nextState->entryAction)
-			nextState->entryAction(fsm->user_data, nextState->data, event);
+		if (nextState != fsm->currentState && nextState->entry_action) {
+			assert(nextState->entry_action->fn);
+			nextState->entry_action->fn(fsm->user_data, fsm->currentState->data,
+										event, nextState->data);
+		}
 
 		fsm->previousState = fsm->currentState;
 		fsm->currentState = nextState;
@@ -137,9 +163,11 @@ static void goToErrorState(struct stateMachine *fsm,
 	fsm->previousState = fsm->currentState;
 	fsm->currentState = fsm->errorState;
 
-	if (fsm->currentState && fsm->currentState->entryAction)
-		fsm->currentState->entryAction(fsm->user_data, fsm->currentState->data,
-									   event);
+	if (fsm->currentState && fsm->currentState->entry_action) {
+		fsm->currentState->entry_action->fn(fsm->user_data,
+											fsm->previousState->data, event,
+											fsm->currentState->data);
+	}
 }
 
 static struct transition *getTransition(struct stateMachine *fsm,
@@ -152,11 +180,7 @@ static struct transition *getTransition(struct stateMachine *fsm,
 
 		/* A transition for the given event has been found: */
 		if (t->eventType == event->type) {
-			if (!t->guard)
-				return t;
-			/* If transition is guarded, ensure that the condition is held: */
-			else if (t->guard(fsm->user_data, t->condition, event))
-				return t;
+			return t;
 		}
 	}
 

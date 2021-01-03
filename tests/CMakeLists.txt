@@ -20,9 +20,16 @@ FetchContent_Declare(
 	GIT_TAG  v39)
 FetchContent_MakeAvailable(trompeloeil)
 
+add_library(state_machine_config INTERFACE)
+add_library(state-machine::config ALIAS state_machine_config)
+target_compile_definitions(state_machine_config INTERFACE -DSM_STATE_MACHINE_ENABLE_LOG=0)
+add_subdirectory(../src/ "src")
+
 set(TARGET_NAME ${PROJECT_NAME}-tests)
 add_executable(${TARGET_NAME} 
 	basic.cpp
+	test_sm.c
+	test_sm_mocks.cpp
 	multi-instance.cpp
 	)
 target_link_libraries(${TARGET_NAME} 
@@ -34,6 +41,9 @@ target_link_libraries(${TARGET_NAME}
 target_compile_features(${TARGET_NAME}
 	PRIVATE
 	cxx_std_17
+	)
+target_compile_definitions(${TARGET_NAME}
+	PRIVATE
 	)
 
 catch_discover_tests(${TARGET_NAME} EXTRA_ARGS --use-colour yes)

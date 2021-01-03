@@ -107,8 +107,8 @@ static struct state checkCharsGroupState = {
 		},
 	.numTransitions = 2,
 	.data = "group",
-	.entryAction = &printEnterMsg,
-	.exitAction = &printExitMsg,
+	.entry_action = &printEnterMsg,
+	.exit_action = &printExitMsg,
 };
 
 static struct state idleState = {
@@ -121,8 +121,8 @@ static struct state idleState = {
 		},
 	.numTransitions = 1,
 	.data = "idle",
-	.entryAction = &printEnterMsg,
-	.exitAction = &printExitMsg,
+	.entry_action = &printEnterMsg,
+	.exit_action = &printExitMsg,
 };
 
 static struct state hState = {
@@ -137,8 +137,8 @@ static struct state hState = {
 		},
 	.numTransitions = 2,
 	.data = "H",
-	.entryAction = &printRecognisedChar,
-	.exitAction = &printExitMsg,
+	.entry_action = &printRecognisedChar,
+	.exit_action = &printExitMsg,
 };
 
 static struct state iState = {
@@ -149,8 +149,8 @@ static struct state iState = {
 							   &compareKeyboardChar, &printHiMsg, &idleState}},
 	.numTransitions = 1,
 	.data = "I",
-	.entryAction = &printRecognisedChar,
-	.exitAction = &printExitMsg,
+	.entry_action = &printRecognisedChar,
+	.exit_action = &printExitMsg,
 };
 
 static struct state aState = {
@@ -161,10 +161,10 @@ static struct state aState = {
 							   &compareKeyboardChar, &printHaMsg, &idleState}},
 	.numTransitions = 1,
 	.data = "A",
-	.entryAction = &printRecognisedChar,
-	.exitAction = &printExitMsg};
+	.entry_action = &printRecognisedChar,
+	.exit_action = &printExitMsg};
 
-static struct state errorState = {.entryAction = &printErrMsg};
+static struct state errorState = {.entry_action = &printErrMsg};
 
 int main() {
 	struct stateMachine m;
