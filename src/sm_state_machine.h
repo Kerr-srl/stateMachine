@@ -106,6 +106,9 @@ struct sm_event {
  */
 struct sm_guard {
 #if SM_STATE_MACHINE_ENABLE_LOG
+	/**
+	 * \brief Name that can be used for logging and debugging
+	 */
 	const char *name;
 #endif
 	/**
@@ -156,6 +159,9 @@ struct sm_guard {
  */
 struct sm_action {
 #if SM_STATE_MACHINE_ENABLE_LOG
+	/**
+	 * \brief Name that can be used for logging and debugging
+	 */
 	const char *name;
 #endif
 	/**
@@ -328,6 +334,9 @@ struct transition {
  */
 struct sm_state {
 #if SM_STATE_MACHINE_ENABLE_LOG
+	/**
+	 * \brief Name that can be used for logging and debugging
+	 */
 	const char *name;
 #endif
 	/**
@@ -396,7 +405,7 @@ struct sm_state_machine;
 struct sm_state_machine_hooks {
 #if SM_STATE_MACHINE_ENABLE_LOG
 	struct state_machine_logger {
-		void (*log_transition)(const struct sm_state_machine *stateMachine,
+		void (*log_transition)(const struct sm_state_machine *state_machine,
 							   const struct sm_event *ev,
 							   const struct sm_guard *guard, bool guard_passed,
 							   const struct sm_state *current_state,
@@ -413,6 +422,12 @@ struct sm_state_machine_hooks {
  * members directly.
  */
 struct sm_state_machine {
+#if SM_STATE_MACHINE_ENABLE_LOG
+	/**
+	 * \brief Name that can be used for logging and debugging
+	 */
+	const char *name;
+#endif
 	/** \brief Pointer to the current state */
 	struct sm_state *current_state;
 	/**
@@ -445,7 +460,7 @@ struct sm_state_machine {
 /**
  * \brief Initialise the state machine
  *
- * This function initialises the supplied stateMachine and sets the current
+ * This function initialises the supplied state_machine and sets the current
  * state to \pn{initialState}. No actions are performed until
  * stateM_handleEvent() is called. It is safe to call this function numerous
  * times, for instance in order to reset/restart the state machine if a final
@@ -458,17 +473,19 @@ struct sm_state_machine {
  * state::entry_state "entry_state" defined, it will not be entered. The user
  * must explicitly set the initial state.
  *
- * \param [in] stateMachine the state machine to initialise.
- * \param [in] initialState the initial state of the state machine.
- * \param [in] errorState pointer to a state that acts a final state and
+ * \param [in] state_machine the state machine to initialise.
+ * \param [in] state_machine_name the name of the state machine. May be NULL.
+ * \param [in] initial_state the initial state of the state machine.
+ * \param [in] error_state pointer to a state that acts a final state and
  * notifies the system/user that an error has occurred.
  * \param [in] hooks pointer to the state machine hooks
  * \param [in] user_data pointer to user defined data that will be passed in
  * every action and guard
  */
-void sm_state_machine_init(struct sm_state_machine *stateMachine,
+void sm_state_machine_init(struct sm_state_machine *state_machine,
+						   const char *state_machine_name,
 						   struct sm_state *initial_state,
-						   struct sm_state *errorState,
+						   struct sm_state *error_state,
 						   struct sm_state_machine_hooks *hooks,
 						   void *user_data);
 
@@ -526,47 +543,58 @@ enum stateM_handleEventRetVals {
  *
  * The returned value is negative if an error occurs.
  *
- * \param stateMachine the state machine to pass an event to.
+ * \param state_machine the state machine to pass an event to.
  * \param event the event to be handled.
  *
  * \return #stateM_handleEventRetVals
  */
-int sm_state_machine_handle_event(struct sm_state_machine *stateMachine,
+int sm_state_machine_handle_event(struct sm_state_machine *state_machine,
 								  struct sm_event *event);
 
 /**
  * \brief Get the current state
  *
- * \param stateMachine the state machine to get the current state from.
+ * \param state_machine the state machine to get the current state from.
  *
  * \retval a pointer to the current state.
- * \retval NULL if \pn{stateMachine} is NULL.
+ * \retval NULL if \pn{state_machine} is NULL.
  */
 struct sm_state *
-sm_state_machine_current_state(struct sm_state_machine *stateMachine);
+sm_state_machine_current_state(struct sm_state_machine *state_machine);
 
 /**
  * \brief Get the previous state
  *
- * \param stateMachine the state machine to get the previous state from.
+ * \param state_machine the state machine to get the previous state from.
  *
  * \retval the previous state.
- * \retval NULL if \pn{stateMachine} is NULL.
+ * \retval NULL if \pn{state_machine} is NULL.
  * \retval NULL if there has not yet been any transitions.
  */
 struct sm_state *
-sm_state_machine_previous_state(struct sm_state_machine *stateMachine);
+sm_state_machine_previous_state(struct sm_state_machine *state_machine);
 
 /**
  * \brief Check if the state machine has stopped
  *
- * \param stateMachine the state machine to test.
+ * \param state_machine the state machine to test.
  *
  * \retval true if the state machine has reached a final state.
- * \retval false if \pn{stateMachine} is NULL or if the current state is not a
+ * \retval false if \pn{state_machine} is NULL or if the current state is not a
  * final state.
  */
-bool sm_state_machine_stopped(struct sm_state_machine *stateMachine);
+bool sm_state_machine_stopped(struct sm_state_machine *state_machine);
+
+#if SM_STATE_MACHINE_ENABLE_LOG
+/**
+ * \brief Return the name assigned to the state machine during initialization
+ *
+ * \param state_machine -
+ *
+ * \returns the name passed during initialization. May be NULL.
+ */
+const char *sm_state_machine_get_name(const struct sm_state_machine *state_machine);
+#endif
 
 #ifdef __cplusplus
 }
