@@ -1,6 +1,7 @@
 #include "test_sm.h"
 
 struct sm_state s1 = {
+	SM_STATE_MACHINE_STATE_NAME(s1),
 	.parent_state = NULL,
 	.entry_state = NULL,
 	.transitions =
@@ -13,6 +14,7 @@ struct sm_state s1 = {
 	.exit_action = &SM_STATE_MACHINE_ACTION(s1_exit_action),
 };
 struct sm_state s2 = {
+	SM_STATE_MACHINE_STATE_NAME(s2),
 	.parent_state = NULL,
 	.entry_state = NULL,
 	.transitions =
@@ -25,6 +27,7 @@ struct sm_state s2 = {
 };
 
 struct sm_state s3 = {
+	SM_STATE_MACHINE_STATE_NAME(s3),
 	.parent_state = NULL,
 	.entry_state = NULL,
 	.transitions =
@@ -37,6 +40,7 @@ struct sm_state s3 = {
 };
 
 struct sm_state s4 = {
+	SM_STATE_MACHINE_STATE_NAME(s4),
 	.parent_state = NULL,
 	.entry_state = NULL,
 	.transitions = NULL,
@@ -45,5 +49,6 @@ struct sm_state s4 = {
 	.exit_action = &SM_STATE_MACHINE_ACTION(s4_exit_action),
 };
 struct sm_state s_error = {
+	SM_STATE_MACHINE_STATE_NAME(s_error),
 	.entry_action = &SM_STATE_MACHINE_ACTION(s_error_entry_action),
 };

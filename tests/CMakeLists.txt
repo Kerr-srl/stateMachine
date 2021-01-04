@@ -22,7 +22,7 @@ FetchContent_MakeAvailable(trompeloeil)
 
 add_library(state_machine_config INTERFACE)
 add_library(state-machine::config ALIAS state_machine_config)
-target_compile_definitions(state_machine_config INTERFACE -DSM_STATE_MACHINE_ENABLE_LOG=0)
+target_compile_definitions(state_machine_config INTERFACE -DSM_STATE_MACHINE_ENABLE_LOG=1)
 add_subdirectory(../src/ "src")
 
 set(TARGET_NAME ${PROJECT_NAME}-tests)
