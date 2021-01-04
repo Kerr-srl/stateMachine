@@ -24,9 +24,9 @@
 
 #include <assert.h>
 
-static void goToErrorState(struct sm_state_machine *state_machine,
+static void go_to_error_state(struct sm_state_machine *state_machine,
 						   struct sm_event *const event);
-static struct transition *getTransition(struct sm_state_machine *state_machine,
+static struct transition *get_transition(struct sm_state_machine *state_machine,
 										struct sm_state *state,
 										struct sm_event *const event);
 
@@ -57,29 +57,29 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 		return stateM_errArg;
 
 	if (!fsm->current_state) {
-		goToErrorState(fsm, event);
+		go_to_error_state(fsm, event);
 		return stateM_errorStateReached;
 	}
 
 	if (!fsm->current_state->num_transitions)
 		return stateM_noStateChange;
 
-	struct sm_state *nextState = fsm->current_state;
+	struct sm_state *next_state = fsm->current_state;
 	do {
-		struct transition *transition = getTransition(fsm, nextState, event);
+		struct transition *transition = get_transition(fsm, next_state, event);
 
 		/* If there were no transitions for the given event for the current
 		 * state, check if there are any transitions for any of the parent
 		 * states (if any): */
 		if (!transition) {
-			nextState = nextState->parent_state;
+			next_state = next_state->parent_state;
 			continue;
 		}
 
 		/* A transition must have a next state defined. If the user has not
 		 * defined the next state, go to error state: */
 		if (!transition->nextState) {
-			goToErrorState(fsm, event);
+			go_to_error_state(fsm, event);
 			return stateM_errorStateReached;
 		}
 
@@ -100,39 +100,39 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 			continue;
 		}
 
-		nextState = transition->nextState;
+		next_state = transition->nextState;
 
 		/* If the new state is a parent state, enter its entry state (if it has
 		 * one). Step down through the whole family tree until a state without
 		 * an entry state is found: */
-		while (nextState->entry_state)
-			nextState = nextState->entry_state;
+		while (next_state->entry_state)
+			next_state = next_state->entry_state;
 
 		/* Run exit action only if the current state is left (only if it does
 		 * not return to itself): */
-		if (nextState != fsm->current_state && fsm->current_state->exit_action)
+		if (next_state != fsm->current_state && fsm->current_state->exit_action)
 			fsm->current_state->exit_action->fn(fsm->user_data,
 												fsm->current_state->data, event,
-												nextState->data);
+												next_state->data);
 
 		/* Run transition action (if any): */
 		if (transition->action) {
 			assert(transition->action->fn);
 			transition->action->fn(fsm->user_data, fsm->current_state->data,
-								   event, nextState->data);
+								   event, next_state->data);
 		}
 
 		/* Call the new state's entry action if it has any (only if state does
 		 * not return to itself): */
-		if (nextState != fsm->current_state && nextState->entry_action) {
-			assert(nextState->entry_action->fn);
-			nextState->entry_action->fn(fsm->user_data,
+		if (next_state != fsm->current_state && next_state->entry_action) {
+			assert(next_state->entry_action->fn);
+			next_state->entry_action->fn(fsm->user_data,
 										fsm->current_state->data, event,
-										nextState->data);
+										next_state->data);
 		}
 
 		fsm->previous_state = fsm->current_state;
-		fsm->current_state = nextState;
+		fsm->current_state = next_state;
 
 		/* If the state returned to itself: */
 		if (fsm->current_state == fsm->previous_state)
@@ -147,7 +147,7 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 			return stateM_finalStateReached;
 
 		return stateM_stateChanged;
-	} while (nextState);
+	} while (next_state);
 
 	return stateM_noStateChange;
 }
@@ -166,7 +166,7 @@ struct sm_state *sm_state_machine_previous_state(struct sm_state_machine *fsm) {
 	return fsm->previous_state;
 }
 
-static void goToErrorState(struct sm_state_machine *fsm,
+static void go_to_error_state(struct sm_state_machine *fsm,
 						   struct sm_event *const event) {
 	fsm->previous_state = fsm->current_state;
 	fsm->current_state = fsm->error_state;
@@ -178,7 +178,7 @@ static void goToErrorState(struct sm_state_machine *fsm,
 	}
 }
 
-static struct transition *getTransition(struct sm_state_machine *fsm,
+static struct transition *get_transition(struct sm_state_machine *fsm,
 										struct sm_state *state,
 										struct sm_event *const event) {
 	size_t i;
