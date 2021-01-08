@@ -1,10 +1,13 @@
 #include "test_sm.h"
 
+static struct sm_action trans_action1_action =
+	SM_STATE_MACHINE_ACTION(trans_action1);
 SM_STATE_MACHINE_TRANSITION_DEF_START(s1)
-SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s2, &SM_STATE_MACHINE_GUARD(guard1),
-								&SM_STATE_MACHINE_ACTION(trans_action1), &s2)
-SM_STATE_MACHINE_TRANSITION_ADD(event_chain_s1_s2, NULL,
-								&SM_STATE_MACHINE_ACTION(trans_action1), &s2)
+SM_STATE_MACHINE_TRANSITION_ADD_EX(event_s1_to_s2,
+								   &SM_STATE_MACHINE_GUARD(guard1),
+								   &trans_action1_action, &s2)
+SM_STATE_MACHINE_TRANSITION_ADD_EX(event_chain_s1_s2, NULL,
+								   &trans_action1_action, &s2)
 SM_STATE_MACHINE_TRANSITION_DEF_END(s1)
 struct sm_state s1 = {
 	SM_STATE_MACHINE_STATE_NAME(s1),
@@ -17,8 +20,7 @@ struct sm_state s1 = {
 
 SM_STATE_MACHINE_TRANSITION_DEF_START(s2)
 SM_STATE_MACHINE_TRANSITION_ADD(event_s2_to_s3, NULL, NULL, &s3)
-SM_STATE_MACHINE_TRANSITION_ADD(event_chain_s1_s2, NULL,
-								&SM_STATE_MACHINE_ACTION(trans_action2), &s3)
+SM_STATE_MACHINE_TRANSITION_ADD(event_chain_s1_s2, NULL, trans_action2, &s3)
 SM_STATE_MACHINE_TRANSITION_DEF_END(s2)
 struct sm_state s2 = {
 	SM_STATE_MACHINE_STATE_NAME(s2),

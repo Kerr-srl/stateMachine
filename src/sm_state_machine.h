@@ -77,6 +77,7 @@ extern "C" {
 #endif
 
 struct sm_state;
+struct sm_state_machine;
 
 /**
  * \brief Event
@@ -102,6 +103,28 @@ struct sm_event {
 };
 
 /**
+ * \brief Check if data passed with event fulfils a condition
+ *
+ * A transition may be conditional. If so, this function, if non-NULL,
+ * will be called. Its first argument will be supplied with #condition,
+ * which can be compared against the \ref event::data "payload" in the
+ * #event. The user may choose to use this argument or not. Only if the
+ * result is true, the transition will take place.
+ *
+ * \param [in] sm_user_data the user data passed in #sm_state_machine_init
+ * will be passed
+ * \param event the event passed to the state machine.
+ *
+ * \returns true if the event's data fulfils the condition, otherwise
+ * false.
+ */
+typedef bool (*sm_guard_fn)(void *sm_user_data,
+							const struct sm_state *current_state,
+							void *current_state_data,
+							const struct sm_event *event,
+							const struct sm_state *next_state,
+							void *next_state_data);
+/**
  * \brief Guard
  *
  * Guards check if a transition is allowed at the moment
@@ -113,25 +136,7 @@ struct sm_guard {
 	 */
 	const char *name;
 #endif
-	/**
-	 * \brief Check if data passed with event fulfils a condition
-	 *
-	 * A transition may be conditional. If so, this function, if non-NULL,
-	 * will be called. Its first argument will be supplied with #condition,
-	 * which can be compared against the \ref event::data "payload" in the
-	 * #event. The user may choose to use this argument or not. Only if the
-	 * result is true, the transition will take place.
-	 *
-	 * \param [in] sm_user_data the user data passed in #sm_state_machine_init
-	 * will be passed
-	 * \param event the event passed to the state machine.
-	 *
-	 * \returns true if the event's data fulfils the condition, otherwise
-	 * false.
-	 */
-	bool (*fn)(void *sm_user_data, const struct sm_state *current_state,
-			   void *current_state_data, const struct sm_event *event,
-			   const struct sm_state *next_state, void *next_state_data);
+	sm_guard_fn fn;
 };
 
 /**
@@ -156,6 +161,27 @@ struct sm_guard {
 #endif
 
 /**
+ * \brief Function containing tasks to be performed during the
+ * transition
+ *
+ * The transition may optionally do some work in this function before
+ * entering the next state. May be NULL.
+ *
+ * \param [in] sm_user_data the user data passed in #sm_state_machine_init
+ * will be passed
+ * \param current_state_data the leaving state's \ref state::data "data"
+ * \param event the event passed to the state machine.
+ * \param new_state_data the new state's (the \ref state::entry_state
+ * "entry_state" of any (chain of) parent states, not the parent state
+ * itself) \ref state::data "data"
+ */
+typedef void (*sm_action_fn)(void *sm_user_data,
+							 const struct sm_state *current_state,
+							 void *current_state_data,
+							 const struct sm_event *event,
+							 const struct sm_state *new_state,
+							 void *new_state_data);
+/**
  * \brief Action
  *
  * Functions that are executed on state change
@@ -167,24 +193,7 @@ struct sm_action {
 	 */
 	const char *name;
 #endif
-	/**
-	 * \brief Function containing tasks to be performed during the
-	 * transition
-	 *
-	 * The transition may optionally do some work in this function before
-	 * entering the next state. May be NULL.
-	 *
-	 * \param [in] sm_user_data the user data passed in #sm_state_machine_init
-	 * will be passed
-	 * \param current_state_data the leaving state's \ref state::data "data"
-	 * \param event the event passed to the state machine.
-	 * \param new_state_data the new state's (the \ref state::entry_state
-	 * "entry_state" of any (chain of) parent states, not the parent state
-	 * itself) \ref state::data "data"
-	 */
-	void (*fn)(void *sm_user_data, const struct sm_state *current_state,
-			   void *current_state_data, const struct sm_event *event,
-			   const struct sm_state *new_state, void *new_state_data);
+	sm_action_fn fn;
 };
 
 /**
@@ -245,6 +254,10 @@ struct sm_transition {
 };
 
 struct sm_state_transitions {
+#if SM_STATE_MACHINE_OPTIMIZE_RAM
+	int (*handle_event)(struct sm_state_machine *state_machine,
+						const struct sm_event *event);
+#else
 	/**
 	 * \brief An array of transitions for the state.
 	 */
@@ -253,13 +266,61 @@ struct sm_state_transitions {
 	 * \brief Number of transitions in the #transitions array.
 	 */
 	size_t num_transitions;
+#endif
 };
 
+#if SM_STATE_MACHINE_OPTIMIZE_RAM
+int sm_state_machine_transition_def_helper_handle_event(
+	struct sm_state_machine *sm_handle, const struct sm_event *event,
+	sm_guard_fn guard, sm_action_fn transition_action,
+	const struct sm_state *next_state);
+int sm_state_machine_transition_def_helper_handle_event_ex(
+	struct sm_state_machine *sm_handle, const struct sm_event *event,
+	struct sm_guard *guard, struct sm_action *transition_action,
+	const struct sm_state *next_state);
+int sm_state_machine_transition_def_helper_parent_handle_event(
+	struct sm_state_machine *sm_handle, const struct sm_event *event);
 #define SM_STATE_MACHINE_TRANSITION_DEF_START(_state_name_)                    \
-	struct sm_transition _state_name_##transition_array[] = {
+	int _state_name_##_transition_fn(struct sm_state_machine *sm_handle,       \
+									 const struct sm_event *event) {
 /**                                                                            \
  */
-#define SM_STATE_MACHINE_TRANSITION_ADD(_event_, _guard_, _action_,         \
+#define SM_STATE_MACHINE_TRANSITION_ADD(_event_, _guard_, _action_,            \
+										_next_state_)                          \
+	if (event->type == _event_) {                                              \
+		return sm_state_machine_transition_def_helper_handle_event(            \
+			sm_handle, event, _guard_, _action_, _next_state_);                \
+	}
+
+#define SM_STATE_MACHINE_TRANSITION_ADD_EX(_event_, _guard_, _action_,         \
+										   _next_state_)                       \
+	if (event->type == _event_) {                                              \
+		return sm_state_machine_transition_def_helper_handle_event_ex(         \
+			sm_handle, event, (_guard_), (_action_), _next_state_);            \
+	}
+
+/**
+ */
+#define SM_STATE_MACHINE_TRANSITION_DEF_END(_state_name_)                      \
+	return sm_state_machine_transition_def_helper_parent_handle_event(         \
+		sm_handle, event);                                                     \
+	}                                                                          \
+	struct sm_state_transitions _state_name_##_transition = {                  \
+		.handle_event = _state_name_##_transition_fn,                          \
+	};
+#define SM_STATE_MACHINE_TRANSITION_GET(_state_name_) _state_name_##_transition
+#else
+#define SM_STATE_MACHINE_TRANSITION_DEF_START(_state_name_)                    \
+	struct sm_transition _state_name_##_transition_array[] = {
+/**                                                                            \
+ */
+#define SM_STATE_MACHINE_TRANSITION_ADD(_event_, _guard_, _action_,            \
+										_next_state_)                          \
+	{_event_, _guard_ == NULL ? NULL : &SM_STATE_MACHINE_GUARD(_guard_),       \
+	 _action_ == NULL ? NULL : &SM_STATE_MACHINE_ACTION(_action_),             \
+	 _next_state_},
+
+#define SM_STATE_MACHINE_TRANSITION_ADD_EX(_event_, _guard_, _action_,         \
 										   _next_state_)                       \
 	{_event_, _guard_, _action_, _next_state_},
 /**
@@ -267,12 +328,13 @@ struct sm_state_transitions {
 #define SM_STATE_MACHINE_TRANSITION_DEF_END(_state_name_)                      \
 	}                                                                          \
 	;                                                                          \
-	struct sm_state_transitions _state_name_##transition = {                   \
-		.transitions = _state_name_##transition_array,                         \
-		.num_transitions = sizeof(_state_name_##transition_array) /            \
+	struct sm_state_transitions _state_name_##_transition = {                  \
+		.transitions = _state_name_##_transition_array,                        \
+		.num_transitions = sizeof(_state_name_##_transition_array) /           \
 						   sizeof(struct sm_transition),                       \
 	};
-#define SM_STATE_MACHINE_TRANSITION_GET(_state_name_) _state_name_##transition
+#define SM_STATE_MACHINE_TRANSITION_GET(_state_name_) _state_name_##_transition
+#endif
 
 /**
  * \brief State
@@ -406,8 +468,6 @@ struct sm_state {
 #define SM_STATE_MACHINE_STATE_NAME(_state_name_) .parent_state = NULL
 #endif
 
-struct sm_state_machine;
-
 /**
  * \brief State machine hooks
  *
@@ -416,12 +476,12 @@ struct sm_state_machine;
 struct sm_state_machine_hooks {
 #if SM_STATE_MACHINE_ENABLE_LOG
 	struct sm_state_machine_logger {
-		void (*log_transition)(const struct sm_state_machine *state_machine,
-							   const struct sm_event *ev,
-							   const struct sm_guard *guard, bool guard_passed,
-							   const struct sm_state *current_state,
-							   const struct sm_action *transition_action,
-							   const struct sm_state *next_state);
+		void (*log_attempt_transition)(
+			const struct sm_state_machine *state_machine,
+			const struct sm_event *ev, const struct sm_guard *guard,
+			const struct sm_state *current_state,
+			const struct sm_action *transition_action,
+			const struct sm_state *next_state);
 	} * logger;
 	/**
 	 * In order to support multiple instances of same state machine
