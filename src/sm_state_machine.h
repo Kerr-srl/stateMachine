@@ -76,6 +76,8 @@
 extern "C" {
 #endif
 
+struct sm_state;
+
 /**
  * \brief Event
  *
@@ -128,7 +130,8 @@ struct sm_guard {
 	 * \returns true if the event's data fulfils the condition, otherwise
 	 * false.
 	 */
-	bool (*fn)(void *sm_user_data, void *condition, struct sm_event *event);
+	bool (*fn)(void *sm_user_data, void *condition,
+			   const struct sm_event *event);
 };
 
 /**
@@ -173,14 +176,15 @@ struct sm_action {
 	 *
 	 * \param [in] sm_user_data the user data passed in #sm_state_machine_init
 	 * will be passed
-	 * \param currentStateData the leaving state's \ref state::data "data"
+	 * \param current_state_data the leaving state's \ref state::data "data"
 	 * \param event the event passed to the state machine.
-	 * \param newStateData the new state's (the \ref state::entry_state
+	 * \param new_state_data the new state's (the \ref state::entry_state
 	 * "entry_state" of any (chain of) parent states, not the parent state
 	 * itself) \ref state::data "data"
 	 */
-	void (*fn)(void *sm_user_data, void *currentStateData,
-			   struct sm_event *event, void *newStateData);
+	void (*fn)(void *sm_user_data, const struct sm_state *current_state,
+			   void *current_state_data, const struct sm_event *event,
+			   const struct sm_state *new_state, void *new_state_data);
 };
 
 /**
@@ -203,8 +207,6 @@ struct sm_action {
 		.fn = _fn_                                                             \
 	}
 #endif
-
-struct sm_state;
 
 /**
  * \brief Transition between a state and another state
@@ -357,11 +359,6 @@ struct sm_state {
 	 */
 	size_t num_transitions;
 	/**
-	 * \brief Data that will be available for the state in its #entryAction and
-	 * #exit_action, and in any \ref transition::action "transition action"
-	 */
-	void *data;
-	/**
 	 * \brief This action is executed whenever the state is being entered. May
 	 * be NULL.
 	 *
@@ -404,7 +401,7 @@ struct sm_state_machine;
  */
 struct sm_state_machine_hooks {
 #if SM_STATE_MACHINE_ENABLE_LOG
-	struct state_machine_logger {
+	struct sm_state_machine_logger {
 		void (*log_transition)(const struct sm_state_machine *state_machine,
 							   const struct sm_event *ev,
 							   const struct sm_guard *guard, bool guard_passed,
@@ -412,6 +409,11 @@ struct sm_state_machine_hooks {
 							   const struct sm_action *transition_action,
 							   const struct sm_state *next_state);
 	} * logger;
+	/**
+	 * In order to support multiple instances of same state machine
+	 */
+	void *(*state_data_mapper)(const struct sm_state *state,
+							   void *state_user_data);
 #endif
 };
 
@@ -429,14 +431,14 @@ struct sm_state_machine {
 	const char *name;
 #endif
 	/** \brief Pointer to the current state */
-	struct sm_state *current_state;
+	const struct sm_state *current_state;
 	/**
 	 * \brief Pointer to previous state
 	 *
 	 * The previous state is stored for convenience in case the user needs to
 	 * keep track of previous states.
 	 */
-	struct sm_state *previous_state;
+	const struct sm_state *previous_state;
 	/**
 	 * \brief Pointer to a state that will be entered whenever an error occurs
 	 * in the state machine.
@@ -444,7 +446,7 @@ struct sm_state_machine {
 	 * See #stateM_errorStateReached for when the state machine enters the
 	 * error state.
 	 */
-	struct sm_state *error_state;
+	const struct sm_state *error_state;
 	/**
 	 * \brief Application hooks
 	 */
@@ -455,6 +457,10 @@ struct sm_state_machine {
 	 * transition::action "transition action"
 	 */
 	void *user_data;
+	/**
+	 * \brief
+	 */
+	void *state_data;
 };
 
 /**
@@ -478,16 +484,18 @@ struct sm_state_machine {
  * \param [in] initial_state the initial state of the state machine.
  * \param [in] error_state pointer to a state that acts a final state and
  * notifies the system/user that an error has occurred.
- * \param [in] hooks pointer to the state machine hooks
+ * \param [in] hooks struct of pointers to the state machine hooks
  * \param [in] user_data pointer to user defined data that will be passed in
  * every action and guard
+ * \param [in] state_data pointer to user defined state data. Portion of the
+ * data will be passed to every action and guard.
  */
 void sm_state_machine_init(struct sm_state_machine *state_machine,
 						   const char *state_machine_name,
-						   struct sm_state *initial_state,
-						   struct sm_state *error_state,
+						   const struct sm_state *initial_state,
+						   const struct sm_state *error_state,
 						   struct sm_state_machine_hooks *hooks,
-						   void *user_data);
+						   void *user_data, void *state_data);
 
 /**
  * \brief stateM_handleEvent() return values
@@ -530,6 +538,31 @@ enum stateM_handleEventRetVals {
 };
 
 /**
+ * \brief Utility macro that reduces the boilerplate code required for ref
+ * sm_state_machine_hooks::state_data_mapper.
+ */
+#define SM_STATE_MACHINE_STATE_DATA_MAP_FN_DEF_START(                          \
+	_map_fn_name_, _global_state_data_struct_name_)                            \
+	void *_map_fn_name_(const struct sm_state *state, void *state_user_data) { \
+		struct _global_state_data_struct_name_ *state_data =                   \
+			(struct _global_state_data_struct_name_ *)state_user_data;         \
+/**                                                                            \
+ */
+#define SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(_state_name_)                   \
+	if ((&(_state_name_)) == state)                                            \
+		return &state_data->_state_name_;
+/**                                                                            \
+ */
+#define SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD_EX(_state_name_, _field_)       \
+	if ((&(_state_name_)) == state)                                            \
+		return &state_data->_field_;
+/**
+ */
+#define SM_STATE_MACHINE_STATE_DATA_MAP_FN_DEF_END()                           \
+	return NULL;                                                               \
+	}
+
+/**
  * \brief Pass an event to the state machine
  *
  * The event will be passed to the current state, and possibly to the current
@@ -549,7 +582,7 @@ enum stateM_handleEventRetVals {
  * \return #stateM_handleEventRetVals
  */
 int sm_state_machine_handle_event(struct sm_state_machine *state_machine,
-								  struct sm_event *event);
+								  const struct sm_event *event);
 
 /**
  * \brief Get the current state
@@ -559,8 +592,8 @@ int sm_state_machine_handle_event(struct sm_state_machine *state_machine,
  * \retval a pointer to the current state.
  * \retval NULL if \pn{state_machine} is NULL.
  */
-struct sm_state *
-sm_state_machine_current_state(struct sm_state_machine *state_machine);
+const struct sm_state *
+sm_state_machine_current_state(const struct sm_state_machine *state_machine);
 
 /**
  * \brief Get the previous state
@@ -571,8 +604,8 @@ sm_state_machine_current_state(struct sm_state_machine *state_machine);
  * \retval NULL if \pn{state_machine} is NULL.
  * \retval NULL if there has not yet been any transitions.
  */
-struct sm_state *
-sm_state_machine_previous_state(struct sm_state_machine *state_machine);
+const struct sm_state *
+sm_state_machine_previous_state(const struct sm_state_machine *state_machine);
 
 /**
  * \brief Check if the state machine has stopped
@@ -593,7 +626,8 @@ bool sm_state_machine_stopped(struct sm_state_machine *state_machine);
  *
  * \returns the name passed during initialization. May be NULL.
  */
-const char *sm_state_machine_get_name(const struct sm_state_machine *state_machine);
+const char *
+sm_state_machine_get_name(const struct sm_state_machine *state_machine);
 #endif
 
 #ifdef __cplusplus

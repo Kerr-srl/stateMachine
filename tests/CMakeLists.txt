@@ -27,10 +27,9 @@ add_subdirectory(../src/ "src")
 
 set(TARGET_NAME ${PROJECT_NAME}-tests)
 add_executable(${TARGET_NAME} 
-	basic.cpp
+	test.cpp
 	test_sm.c
 	test_sm_mocks.cpp
-	multi-instance.cpp
 	)
 target_link_libraries(${TARGET_NAME} 
 	PRIVATE 

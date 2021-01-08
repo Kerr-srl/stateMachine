@@ -52,3 +52,14 @@ struct sm_state s_error = {
 	SM_STATE_MACHINE_STATE_NAME(s_error),
 	.entry_action = &SM_STATE_MACHINE_ACTION(s_error_entry_action),
 };
+
+void *test_sm_state_data_mapper(const struct sm_state *state,
+								void *state_user_data);
+
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_DEF_START(test_sm_state_data_mapper,
+											 test_sm_state_data)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s1)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s2)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s3)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s4)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_DEF_END()

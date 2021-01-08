@@ -24,17 +24,20 @@
 
 #include <assert.h>
 
-static void go_to_error_state(struct sm_state_machine *state_machine,
-						   struct sm_event *const event);
-static struct transition *get_transition(struct sm_state_machine *state_machine,
-										struct sm_state *state,
-										struct sm_event *const event);
+static void go_to_error_state(struct sm_state_machine *fsm,
+							  const struct sm_event *const event);
+static struct transition *
+get_transition(const struct sm_state_machine *state_machine,
+			   const struct sm_state *state,
+			   const struct sm_event *const event);
+static void *get_state_data(const struct sm_state_machine *state_machine,
+							const struct sm_state *state);
 
 void sm_state_machine_init(struct sm_state_machine *fsm, const char *name,
-						   struct sm_state *initial_state,
-						   struct sm_state *error_state,
+						   const struct sm_state *initial_state,
+						   const struct sm_state *error_state,
 						   struct sm_state_machine_hooks *hooks,
-						   void *user_data) {
+						   void *user_data, void *state_data) {
 	assert(initial_state != NULL);
 	assert(error_state != NULL);
 	assert(fsm != NULL);
@@ -49,10 +52,11 @@ void sm_state_machine_init(struct sm_state_machine *fsm, const char *name,
 	fsm->error_state = error_state;
 	fsm->hooks = *hooks;
 	fsm->user_data = user_data;
+	fsm->state_data = state_data;
 }
 
 int sm_state_machine_handle_event(struct sm_state_machine *fsm,
-								  struct sm_event *event) {
+								  const struct sm_event *event) {
 	if (!fsm || !event)
 		return stateM_errArg;
 
@@ -64,7 +68,7 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 	if (!fsm->current_state->num_transitions)
 		return stateM_noStateChange;
 
-	struct sm_state *next_state = fsm->current_state;
+	const struct sm_state *next_state = fsm->current_state;
 	do {
 		struct transition *transition = get_transition(fsm, next_state, event);
 
@@ -111,24 +115,28 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 		/* Run exit action only if the current state is left (only if it does
 		 * not return to itself): */
 		if (next_state != fsm->current_state && fsm->current_state->exit_action)
-			fsm->current_state->exit_action->fn(fsm->user_data,
-												fsm->current_state->data, event,
-												next_state->data);
+			fsm->current_state->exit_action->fn(
+				fsm->user_data, fsm->current_state,
+				get_state_data(fsm, fsm->current_state), event, next_state,
+				get_state_data(fsm, next_state));
 
 		/* Run transition action (if any): */
 		if (transition->action) {
 			assert(transition->action->fn);
-			transition->action->fn(fsm->user_data, fsm->current_state->data,
-								   event, next_state->data);
+			transition->action->fn(fsm->user_data, fsm->current_state,
+								   get_state_data(fsm, fsm->current_state),
+								   event, next_state,
+								   get_state_data(fsm, next_state));
 		}
 
 		/* Call the new state's entry action if it has any (only if state does
 		 * not return to itself): */
 		if (next_state != fsm->current_state && next_state->entry_action) {
 			assert(next_state->entry_action->fn);
-			next_state->entry_action->fn(fsm->user_data,
-										fsm->current_state->data, event,
-										next_state->data);
+			next_state->entry_action->fn(
+				fsm->user_data, fsm->current_state,
+				get_state_data(fsm, fsm->current_state), event, next_state,
+				get_state_data(fsm, next_state));
 		}
 
 		fsm->previous_state = fsm->current_state;
@@ -152,14 +160,16 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 	return stateM_noStateChange;
 }
 
-struct sm_state *sm_state_machine_current_state(struct sm_state_machine *fsm) {
+const struct sm_state *
+sm_state_machine_current_state(const struct sm_state_machine *fsm) {
 	if (!fsm)
 		return NULL;
 
 	return fsm->current_state;
 }
 
-struct sm_state *sm_state_machine_previous_state(struct sm_state_machine *fsm) {
+const struct sm_state *
+sm_state_machine_previous_state(const struct sm_state_machine *fsm) {
 	if (!fsm)
 		return NULL;
 
@@ -167,20 +177,21 @@ struct sm_state *sm_state_machine_previous_state(struct sm_state_machine *fsm) {
 }
 
 static void go_to_error_state(struct sm_state_machine *fsm,
-						   struct sm_event *const event) {
+							  const struct sm_event *const event) {
 	fsm->previous_state = fsm->current_state;
 	fsm->current_state = fsm->error_state;
 
 	if (fsm->current_state && fsm->current_state->entry_action) {
-		fsm->current_state->entry_action->fn(fsm->user_data,
-											 fsm->previous_state->data, event,
-											 fsm->current_state->data);
+		fsm->current_state->entry_action->fn(
+			fsm->user_data, fsm->previous_state,
+			get_state_data(fsm, fsm->previous_state), event, fsm->current_state,
+			get_state_data(fsm, fsm->current_state));
 	}
 }
 
-static struct transition *get_transition(struct sm_state_machine *fsm,
-										struct sm_state *state,
-										struct sm_event *const event) {
+static struct transition *get_transition(const struct sm_state_machine *fsm,
+										 const struct sm_state *state,
+										 const struct sm_event *const event) {
 	size_t i;
 
 	for (i = 0; i < state->num_transitions; ++i) {
@@ -204,8 +215,18 @@ bool sm_state_machine_stopped(struct sm_state_machine *state_machine) {
 }
 
 #if SM_STATE_MACHINE_ENABLE_LOG
-const char *sm_state_machine_get_name(const struct sm_state_machine *state_machine) {
+const char *
+sm_state_machine_get_name(const struct sm_state_machine *state_machine) {
 	assert(state_machine != NULL);
 	return state_machine->name;
 }
 #endif
+
+static void *get_state_data(const struct sm_state_machine *state_machine,
+							const struct sm_state *state) {
+	if (state_machine->hooks.state_data_mapper) {
+		return state_machine->hooks.state_data_mapper(
+			state, state_machine->state_data);
+	}
+	return NULL;
+}
