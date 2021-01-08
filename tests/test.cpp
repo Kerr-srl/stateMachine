@@ -76,8 +76,9 @@ TEST_CASE("State machine") {
 
 	SECTION("single instance - state data") {
 		sm_state_machine sm;
-		sm_state_machine_hooks hooks = {.state_data_mapper =
-											test_sm_state_data_mapper};
+		sm_state_machine_hooks hooks = {
+			.state_data_mapper = test_sm_state_data_mapper,
+		};
 		test_sm_state_data data;
 		sm_state_machine_init(&sm, nullptr, &s1, &s_error, &hooks,
 							  fake_user_data, &data);
@@ -157,10 +158,35 @@ TEST_CASE("State machine") {
 			sm_state_machine_handle_event(&sm_2, &event);
 		}
 	}
-}
 
-TEST_CASE("Guards") {
-}
+	SECTION("an event should be used to perform one transition") {
+		sm_state_machine sm;
+		sm_state_machine_hooks hooks = {
+			.state_data_mapper = test_sm_state_data_mapper,
+		};
+		test_sm_state_data data;
+		sm_state_machine_init(&sm, nullptr, &s1, &s_error, &hooks,
+							  fake_user_data, &data);
 
-TEST_CASE("Error state") {
+		struct sm_event event;
+		event.data = nullptr;
+		event.type = event_chain_s1_s2;
+		sequence seq;
+		REQUIRE_CALL(mocks, s1_exit_action(fake_user_data, &s1, &data.s1,
+										   &event, &s2, &data.s2))
+			.IN_SEQUENCE(seq);
+		REQUIRE_CALL(mocks, trans_action1(fake_user_data, &s1, &data.s1, &event,
+										  &s2, &data.s2))
+			.IN_SEQUENCE(seq);
+		REQUIRE_CALL(mocks, s2_entry_action(fake_user_data, &s1, &data.s1,
+											&event, &s2, &data.s2))
+			.IN_SEQUENCE(seq);
+		FORBID_CALL(mocks, s2_exit_action(fake_user_data, &s2, &data.s2, &event,
+										  &s3, &data.s3));
+		FORBID_CALL(mocks, trans_action2(fake_user_data, &s2, &data.s2, &event,
+										 &s3, &data.s3));
+		FORBID_CALL(mocks, s3_entry_action(fake_user_data, &s2, &data.s2,
+										   &event, &s3, &data.s3));
+		sm_state_machine_handle_event(&sm, &event);
+	}
 }

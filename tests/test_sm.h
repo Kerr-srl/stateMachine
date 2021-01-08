@@ -34,6 +34,7 @@ enum sm_public_event {
 	event_s2_to_s3,
 	event_s3_to_s4,
 	event_s4_to_s5,
+	event_chain_s1_s2,
 };
 
 void *test_sm_state_data_mapper(const struct sm_state *state,

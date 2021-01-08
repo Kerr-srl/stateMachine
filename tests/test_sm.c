@@ -8,8 +8,9 @@ struct sm_state s1 = {
 		(struct sm_transition[]){
 			{event_s1_to_s2, &SM_STATE_MACHINE_GUARD(guard1),
 			 &SM_STATE_MACHINE_ACTION(trans_action1), &s2},
+			{event_chain_s1_s2, NULL, &SM_STATE_MACHINE_ACTION(trans_action1), &s2},
 		},
-	.num_transitions = 1,
+	.num_transitions = 2,
 	.entry_action = &SM_STATE_MACHINE_ACTION(s1_entry_action),
 	.exit_action = &SM_STATE_MACHINE_ACTION(s1_exit_action),
 };
@@ -20,8 +21,9 @@ struct sm_state s2 = {
 	.transitions =
 		(struct sm_transition[]){
 			{event_s2_to_s3, NULL, NULL, &s3},
+			{event_chain_s1_s2, NULL, &SM_STATE_MACHINE_ACTION(trans_action2), &s3},
 		},
-	.num_transitions = 1,
+	.num_transitions = 2,
 	.entry_action = &SM_STATE_MACHINE_ACTION(s2_entry_action),
 	.exit_action = &SM_STATE_MACHINE_ACTION(s2_exit_action),
 };
