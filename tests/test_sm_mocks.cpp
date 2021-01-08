@@ -59,17 +59,29 @@ void s4_exit_action(void *sm_user_data, const struct sm_state *current_state,
 	mocks.s4_exit_action(sm_user_data, current_state, current_state_data, event,
 						 next_state, next_state_data);
 }
-bool guard1(void *sm_user_data, void *condition, const struct sm_event *event) {
-	return mocks.guard1(sm_user_data, condition, event);
+bool guard1(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data) {
+	return mocks.guard1(sm_user_data, current_state, current_state_data, event,
+						next_state, next_state_data);
 }
-bool guard2(void *sm_user_data, void *condition, const struct sm_event *event) {
-	return mocks.guard2(sm_user_data, condition, event);
+bool guard2(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data) {
+	return mocks.guard2(sm_user_data, current_state, current_state_data, event,
+						next_state, next_state_data);
 }
-bool guard3(void *sm_user_data, void *condition, const struct sm_event *event) {
-	return mocks.guard3(sm_user_data, condition, event);
+bool guard3(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data) {
+	return mocks.guard3(sm_user_data, current_state, current_state_data, event,
+						next_state, next_state_data);
 }
-bool guard4(void *sm_user_data, void *condition, const struct sm_event *event) {
-	return mocks.guard4(sm_user_data, condition, event);
+bool guard4(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data) {
+	return mocks.guard4(sm_user_data, current_state, current_state_data, event,
+						next_state, next_state_data);
 }
 
 void trans_action1(void *sm_user_data, const struct sm_state *current_state,

@@ -69,10 +69,18 @@ void s3_exit_action(void *sm_user_data, const struct sm_state *current_state,
 void s4_exit_action(void *sm_user_data, const struct sm_state *current_state,
 					void *current_state_data, const struct sm_event *event,
 					const struct sm_state *next_state, void *next_state_data);
-bool guard1(void *sm_user_data, void *condition, const struct sm_event *event);
-bool guard2(void *sm_user_data, void *condition, const struct sm_event *event);
-bool guard3(void *sm_user_data, void *condition, const struct sm_event *event);
-bool guard4(void *sm_user_data, void *condition, const struct sm_event *event);
+bool guard1(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data);
+bool guard2(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data);
+bool guard3(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data);
+bool guard4(void *sm_user_data, const struct sm_state *current_state,
+			void *current_state_data, const struct sm_event *event,
+			const struct sm_state *next_state, void *next_state_data);
 
 void trans_action1(void *sm_user_data, const struct sm_state *current_state,
 				   void *current_state_data, const struct sm_event *event,

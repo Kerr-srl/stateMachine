@@ -124,14 +124,14 @@ struct sm_guard {
 	 *
 	 * \param [in] sm_user_data the user data passed in #sm_state_machine_init
 	 * will be passed
-	 * \param condition event (data) to compare the incoming event against.
 	 * \param event the event passed to the state machine.
 	 *
 	 * \returns true if the event's data fulfils the condition, otherwise
 	 * false.
 	 */
-	bool (*fn)(void *sm_user_data, void *condition,
-			   const struct sm_event *event);
+	bool (*fn)(void *sm_user_data, const struct sm_state *current_state,
+			   void *current_state_data, const struct sm_event *event,
+			   const struct sm_state *next_state, void *next_state_data);
 };
 
 /**
@@ -229,18 +229,9 @@ struct sm_action {
  * \sa event
  * \sa state
  */
-struct transition {
+struct sm_transition {
 	/** \brief The event that will trigger this transition. */
-	int eventType;
-	/**
-	 * \brief Condition that event must fulfil
-	 *
-	 * This variable will be passed to the #guard (if #guard is non-NULL) and
-	 * may be used as a condition that the incoming event's data must fulfil in
-	 * order for the transition to be performed. By using this variable, the
-	 * number of #guard functions can be minimised by making them more general.
-	 */
-	void *condition;
+	int event_type;
 	struct sm_guard *guard;
 	struct sm_action *action;
 	/**
@@ -250,7 +241,7 @@ struct transition {
 	 * NULL. If it is, the state machine will detect it and enter the \ref
 	 * stateMachine::errorState "error state".
 	 */
-	struct sm_state *nextState;
+	struct sm_state *next_state;
 };
 
 /**
@@ -353,7 +344,7 @@ struct sm_state {
 	/**
 	 * \brief An array of transitions for the state.
 	 */
-	struct transition *transitions;
+	struct sm_transition *transitions;
 	/**
 	 * \brief Number of transitions in the #transitions array.
 	 */

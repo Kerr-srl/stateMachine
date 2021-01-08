@@ -47,14 +47,22 @@ struct StateCallbackMocks {
 					void *current_state_data, const struct sm_event *event,
 					const struct sm_state *next_state, void *next_state_data));
 
-	MAKE_MOCK3(guard1, bool(void *sm_user_data, void *condition,
-							const struct sm_event *event));
-	MAKE_MOCK3(guard2, bool(void *sm_user_data, void *condition,
-							const struct sm_event *event));
-	MAKE_MOCK3(guard3, bool(void *sm_user_data, void *condition,
-							const struct sm_event *event));
-	MAKE_MOCK3(guard4, bool(void *sm_user_data, void *condition,
-							const struct sm_event *event));
+	MAKE_MOCK6(guard1,
+			   bool(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(guard2,
+			   bool(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(guard3,
+			   bool(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(guard4,
+			   bool(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
 
 	MAKE_MOCK6(trans_action1,
 			   void(void *sm_user_data, const struct sm_state *current_state,
