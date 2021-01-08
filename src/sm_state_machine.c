@@ -65,7 +65,8 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 		return stateM_errorStateReached;
 	}
 
-	if (!fsm->current_state->num_transitions)
+	if (!fsm->current_state->transitions ||
+		!fsm->current_state->transitions->num_transitions)
 		return stateM_noStateChange;
 
 	const struct sm_state *next_state = fsm->current_state;
@@ -155,7 +156,7 @@ int sm_state_machine_handle_event(struct sm_state_machine *fsm,
 
 		/* If the new state is a final state, notify user that the state
 		 * machine has stopped: */
-		if (!fsm->current_state->num_transitions)
+		if (sm_state_machine_stopped(fsm))
 			return stateM_finalStateReached;
 
 		return stateM_stateChanged;
@@ -196,10 +197,11 @@ static void go_to_error_state(struct sm_state_machine *fsm,
 static struct sm_transition *
 get_transition(const struct sm_state_machine *fsm, const struct sm_state *state,
 			   const struct sm_event *const event) {
-	size_t i;
-
-	for (i = 0; i < state->num_transitions; ++i) {
-		struct sm_transition *t = &state->transitions[i];
+	if (state->transitions == NULL) {
+		return NULL;
+	}
+	for (size_t i = 0; i < state->transitions->num_transitions; ++i) {
+		struct sm_transition *t = &state->transitions->transitions[i];
 
 		/* A transition for the given event has been found: */
 		if (t->event_type == event->type) {
@@ -215,7 +217,8 @@ bool sm_state_machine_stopped(struct sm_state_machine *state_machine) {
 	if (!state_machine)
 		return true;
 
-	return state_machine->current_state->num_transitions == 0;
+	return !state_machine->current_state->transitions ||
+		   !state_machine->current_state->transitions->num_transitions;
 }
 
 #if SM_STATE_MACHINE_ENABLE_LOG

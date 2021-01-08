@@ -244,6 +244,36 @@ struct sm_transition {
 	struct sm_state *next_state;
 };
 
+struct sm_state_transitions {
+	/**
+	 * \brief An array of transitions for the state.
+	 */
+	struct sm_transition *transitions;
+	/**
+	 * \brief Number of transitions in the #transitions array.
+	 */
+	size_t num_transitions;
+};
+
+#define SM_STATE_MACHINE_TRANSITION_DEF_START(_state_name_)                    \
+	struct sm_transition _state_name_##transition_array[] = {
+/**                                                                            \
+ */
+#define SM_STATE_MACHINE_TRANSITION_ADD(_event_, _guard_, _action_,         \
+										   _next_state_)                       \
+	{_event_, _guard_, _action_, _next_state_},
+/**
+ */
+#define SM_STATE_MACHINE_TRANSITION_DEF_END(_state_name_)                      \
+	}                                                                          \
+	;                                                                          \
+	struct sm_state_transitions _state_name_##transition = {                   \
+		.transitions = _state_name_##transition_array,                         \
+		.num_transitions = sizeof(_state_name_##transition_array) /            \
+						   sizeof(struct sm_transition),                       \
+	};
+#define SM_STATE_MACHINE_TRANSITION_GET(_state_name_) _state_name_##transition
+
 /**
  * \brief State
  *
@@ -341,14 +371,7 @@ struct sm_state {
 	 * child state that serves as an entry point.
 	 */
 	struct sm_state *entry_state;
-	/**
-	 * \brief An array of transitions for the state.
-	 */
-	struct sm_transition *transitions;
-	/**
-	 * \brief Number of transitions in the #transitions array.
-	 */
-	size_t num_transitions;
+	struct sm_state_transitions *transitions;
 	/**
 	 * \brief This action is executed whenever the state is being entered. May
 	 * be NULL.
