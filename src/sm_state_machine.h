@@ -484,13 +484,13 @@ struct sm_state_machine_hooks {
 			const struct sm_action *transition_action,
 			const struct sm_state *next_state);
 	} * logger;
+#endif
 	const char *(*stringify_event)(const struct sm_event *event);
 	/**
 	 * In order to support multiple instances of same state machine
 	 */
 	void *(*state_data_mapper)(const struct sm_state *state,
 							   void *state_user_data);
-#endif
 };
 
 /**
