@@ -478,11 +478,13 @@ struct sm_state_machine_hooks {
 	struct sm_state_machine_logger {
 		void (*log_attempt_transition)(
 			const struct sm_state_machine *state_machine,
-			const struct sm_event *ev, const struct sm_guard *guard,
+			const char *state_machine_name, const struct sm_event *event,
+			const char *event_name, const struct sm_guard *guard,
 			const struct sm_state *current_state,
 			const struct sm_action *transition_action,
 			const struct sm_state *next_state);
 	} * logger;
+	const char *(*stringify_event)(const struct sm_event *event);
 	/**
 	 * In order to support multiple instances of same state machine
 	 */

@@ -111,8 +111,12 @@ int sm_state_machine_handle_event(struct sm_state_machine *sm_handle,
 		if (sm_handle->hooks.logger &&
 			sm_handle->hooks.logger->log_attempt_transition) {
 			sm_handle->hooks.logger->log_attempt_transition(
-				sm_handle, event, transition->guard, sm_handle->current_state,
-				transition->action, transition->next_state);
+				sm_handle, sm_state_machine_get_name(sm_handle), event,
+				sm_handle->hooks.stringify_event
+					? sm_handle->hooks.stringify_event(event)
+					: NULL,
+				transition->guard, sm_handle->current_state, transition->action,
+				transition->next_state);
 		}
 #endif
 		return handle_event(
