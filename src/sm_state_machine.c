@@ -19,6 +19,21 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+/**
+ * \verbatim
+ *                              _  __
+ *                             | |/ /
+ *                             | ' / ___ _ __ _ __
+ *                             |  < / _ \ '__| '__|
+ *                             | . \  __/ |  | |
+ *                             |_|\_\___|_|  |_|
+ * \endverbatim
+ * \file		sm_state_machine.c
+ *
+ * \brief		state machine - implementation
+ *
+ * \copyright	Copyright 2021 Kerr s.r.l. - All Rights Reserved.
+ */
 
 #include "sm_state_machine.h"
 

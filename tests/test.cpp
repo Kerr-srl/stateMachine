@@ -1,3 +1,18 @@
+/**
+ * \verbatim
+ *                              _  __
+ *                             | |/ /
+ *                             | ' / ___ _ __ _ __
+ *                             |  < / _ \ '__| '__|
+ *                             | . \  __/ |  | |
+ *                             |_|\_\___|_|  |_|
+ * \endverbatim
+ * \file		test.cpp
+ *
+ * \brief		Unit tests
+ *
+ * \copyright	Copyright 2021 Kerr s.r.l. - All Rights Reserved.
+ */
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/catch_version_macros.hpp"
 #include "catch2/generators/catch_generators.hpp"

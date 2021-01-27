@@ -1,4 +1,18 @@
-
+/**
+ * \verbatim
+ *                              _  __
+ *                             | |/ /
+ *                             | ' / ___ _ __ _ __
+ *                             |  < / _ \ '__| '__|
+ *                             | . \  __/ |  | |
+ *                             |_|\_\___|_|  |_|
+ * \endverbatim
+ * \file		test_sm.h
+ *
+ * \brief		State machine used by unit tests - interface
+ *
+ * \copyright	Copyright 2020 Kerr s.r.l. - All Rights Reserved.
+ */
 #ifndef SM_TEST_BASIC_SM_H_
 #define SM_TEST_BASIC_SM_H_
 

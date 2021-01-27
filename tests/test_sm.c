@@ -1,3 +1,18 @@
+/**
+ * \verbatim
+ *                              _  __
+ *                             | |/ /
+ *                             | ' / ___ _ __ _ __
+ *                             |  < / _ \ '__| '__|
+ *                             | . \  __/ |  | |
+ *                             |_|\_\___|_|  |_|
+ * \endverbatim
+ * \file		test_sm.c
+ *
+ * \brief		State machine used by unit tests - implementation
+ *
+ * \copyright	Copyright 2021 Kerr s.r.l. - All Rights Reserved.
+ */
 #include "test_sm.h"
 
 static struct sm_action trans_action1_action =

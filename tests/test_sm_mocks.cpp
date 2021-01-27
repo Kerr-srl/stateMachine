@@ -1,3 +1,18 @@
+/**
+ * \verbatim
+ *                              _  __
+ *                             | |/ /
+ *                             | ' / ___ _ __ _ __
+ *                             |  < / _ \ '__| '__|
+ *                             | . \  __/ |  | |
+ *                             |_|\_\___|_|  |_|
+ * \endverbatim
+ * \file		test_sm_mocks.cpp
+ *
+ * \brief		State machine callback mocks for unit tests - implementation
+ *
+ * \copyright	Copyright 2021 Kerr s.r.l. - All Rights Reserved.
+ */
 #include "test_sm_mocks.hpp"
 
 StateCallbackMocks mocks;
