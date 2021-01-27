@@ -641,9 +641,9 @@ void sm_state_machine_init(struct sm_state_machine *state_machine,
 /**
  * \brief stateM_handleEvent() return values
  */
-enum stateM_handleEventRetVals {
+enum sm_state_machine_handle_event_status {
 	/** \brief Erroneous arguments were passed */
-	stateM_errArg = -2,
+	sm_state_machine_error_arg = -2,
 	/**
 	 * \brief The error state was reached
 	 *
@@ -656,9 +656,9 @@ enum stateM_handleEventRetVals {
 	 * - The current state is NULL
 	 * - A transition for the current event did not define the next state
 	 */
-	stateM_errorStateReached,
+	sm_state_machine_error_state_reached,
 	/** \brief The current state changed into a non-final state */
-	stateM_stateChanged,
+	sm_state_machine_state_changed,
 	/**
 	 * \brief The state changed back to itself
 	 *
@@ -666,16 +666,16 @@ enum stateM_handleEventRetVals {
 	 * indirect path may inlude a transition from a parent state and the use of
 	 * \ref state::entry_state "entry_states".
 	 */
-	stateM_stateLoopSelf,
+	sm_state_machine_self_loop,
 	/**
 	 * \brief The current state did not change on the given event
 	 *
 	 * If any event passed to the state machine should result in a state
 	 * change, this return value should be considered as an error.
 	 */
-	stateM_noStateChange,
+	sm_state_machine_no_state_change,
 	/** \brief A final state (any but the error state) was reached */
-	stateM_finalStateReached,
+	sm_state_machine_final_state_reached,
 };
 
 /**

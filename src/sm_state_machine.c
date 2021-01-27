@@ -88,7 +88,7 @@ int sm_state_machine_handle_event(struct sm_state_machine *sm_handle,
 		return sm_handle->current_state->transitions->handle_event(sm_handle,
 																   event);
 	}
-	return stateM_noStateChange;
+	return sm_state_machine_no_state_change;
 #else
 	if (!sm_handle || !event)
 		return stateM_errArg;
@@ -229,7 +229,7 @@ static int handle_event(struct sm_state_machine *sm_handle,
 		guard_rejected = true;
 	}
 	if (guard_rejected) {
-		return stateM_noStateChange;
+		return sm_state_machine_no_state_change;
 	}
 
 	/* Run exit action only if the current state is left (only if it does
@@ -278,20 +278,20 @@ static int handle_event(struct sm_state_machine *sm_handle,
 
 	/* If the state returned to itself: */
 	if (sm_handle->current_state == sm_handle->previous_state) {
-		return stateM_stateLoopSelf;
+		return sm_state_machine_self_loop;
 	}
 
 	if (sm_handle->current_state == sm_handle->error_state) {
-		return stateM_errorStateReached;
+		return sm_state_machine_error_state_reached;
 	}
 
 	/* If the new state is a final state, notify user that the state
 	 * machine has stopped: */
 	if (sm_state_machine_stopped(sm_handle)) {
-		return stateM_finalStateReached;
+		return sm_state_machine_final_state_reached;
 	}
 
-	return stateM_stateChanged;
+	return sm_state_machine_state_changed;
 }
 
 #if SM_STATE_MACHINE_ENABLE_LOG
@@ -330,7 +330,7 @@ int sm_state_machine_transition_def_helper_parent_handle_event(
 		return sm_handle->current_state->parent_state->transitions
 			->handle_event(sm_handle, event);
 	}
-	return stateM_noStateChange;
+	return sm_state_machine_no_state_change;
 }
 
 #endif
