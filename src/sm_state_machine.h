@@ -277,6 +277,10 @@ struct sm_action {
  * transitions for the current event, the state's parent will be handed the
  * event.
  *
+ * Limitation: the current state and the #next_state must have the same
+ * parent_state (or both have no parent state). I.e. direct cross composite
+ * state transition is not supported
+ *
  * \sa sm_event
  * \sa sm_state
  */

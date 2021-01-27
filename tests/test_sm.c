@@ -12,6 +12,21 @@
  * \brief		State machine used by unit tests - implementation
  *
  * \copyright	Copyright 2021 Kerr s.r.l. - All Rights Reserved.
+ *
+ * Why create a huge state machine that encompasses all the aspects that need
+ * to be tested? Couldn't we, for each test case, create a mini state machine?
+ * Wouldn't the tests be much easier to understand?
+ *
+ * Yeah, but unfortunately, for how this library is designed, there are some
+ * problems.
+ *
+ * * The utility macros provided by this library rely on features that are
+ * available only in C (e.g. compound literal)
+ * * The RAM optimization mode is designed with the assumption that the
+ * transitions are defined globally; i.e. macros such as
+ * SM_STATE_MACHINE_TRANSITION_DEF_START, etc.  must be used in the global
+ * scope. It's possible, but not straightforward, to make them work also in
+ * local scope.
  */
 #include "test_sm.h"
 
@@ -23,6 +38,7 @@ SM_STATE_MACHINE_TRANSITION_ADD_EX(event_s1_to_s2,
 								   &trans_action1_action, &s2)
 SM_STATE_MACHINE_TRANSITION_ADD_EX(event_chain_s1_s2, NULL,
 								   &trans_action1_action, &s2)
+SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s5, NULL, NULL, &s5)
 SM_STATE_MACHINE_TRANSITION_DEF_END(s1)
 struct sm_state s1 = {
 	SM_STATE_MACHINE_STATE_NAME(s1),
@@ -66,6 +82,53 @@ struct sm_state s4 = {
 	.entry_action = &SM_STATE_MACHINE_ACTION(s4_entry_action),
 	.exit_action = &SM_STATE_MACHINE_ACTION(s4_exit_action),
 };
+
+struct sm_state s5 = {
+	SM_STATE_MACHINE_STATE_NAME(s5),
+	.entry_state = &s5_child,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s5_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s5_exit_action),
+};
+
+struct sm_state s5_child = {
+	SM_STATE_MACHINE_STATE_NAME(s5_child),
+	.parent_state = &s5,
+	.entry_state = &s5_child_child,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s5_child_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s5_child_exit_action),
+};
+
+struct sm_state s5_child_child = {
+	SM_STATE_MACHINE_STATE_NAME(s5_child_child),
+	.parent_state = &s5_child,
+	.transitions = NULL,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s5_child_child_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s5_child_child_exit_action),
+};
+
+struct sm_state s6 = {
+	SM_STATE_MACHINE_STATE_NAME(s6),
+	.entry_state = &s6_child,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s6_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s6_exit_action),
+};
+
+struct sm_state s6_child = {
+	SM_STATE_MACHINE_STATE_NAME(s6_child),
+	.parent_state = &s6,
+	.entry_state = &s6_child,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s6_child_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s6_child_exit_action),
+};
+
+struct sm_state s6_child_child = {
+	SM_STATE_MACHINE_STATE_NAME(s6_child_child),
+	.parent_state = &s6_child,
+	.transitions = NULL,
+	.entry_action = &SM_STATE_MACHINE_ACTION(s6_child_child_entry_action),
+	.exit_action = &SM_STATE_MACHINE_ACTION(s6_child_child_exit_action),
+};
+
 struct sm_state s_error = {
 	SM_STATE_MACHINE_STATE_NAME(s_error),
 	.entry_action = &SM_STATE_MACHINE_ACTION(s_error_entry_action),
@@ -80,4 +143,6 @@ SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s1)
 SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s2)
 SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s3)
 SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s4)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s5)
+SM_STATE_MACHINE_STATE_DATA_MAP_FN_ADD(s5_child)
 SM_STATE_MACHINE_STATE_DATA_MAP_FN_DEF_END()

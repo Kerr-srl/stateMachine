@@ -41,6 +41,56 @@ void s4_entry_action(void *sm_user_data, const struct sm_state *current_state,
 	mocks.s4_entry_action(sm_user_data, current_state, current_state_data,
 						  event, next_state, next_state_data);
 }
+void s5_entry_action(void *sm_user_data, const struct sm_state *current_state,
+					 void *current_state_data, const struct sm_event *event,
+					 const struct sm_state *next_state, void *next_state_data) {
+	mocks.s5_entry_action(sm_user_data, current_state, current_state_data,
+						  event, next_state, next_state_data);
+}
+void s5_child_entry_action(void *sm_user_data,
+						   const struct sm_state *current_state,
+						   void *current_state_data,
+						   const struct sm_event *event,
+						   const struct sm_state *next_state,
+						   void *next_state_data) {
+	mocks.s5_child_entry_action(sm_user_data, current_state, current_state_data,
+								event, next_state, next_state_data);
+}
+void s5_child_child_entry_action(void *sm_user_data,
+								 const struct sm_state *current_state,
+								 void *current_state_data,
+								 const struct sm_event *event,
+								 const struct sm_state *next_state,
+								 void *next_state_data) {
+	mocks.s5_child_child_entry_action(sm_user_data, current_state,
+									  current_state_data, event, next_state,
+									  next_state_data);
+}
+void s6_entry_action(void *sm_user_data, const struct sm_state *current_state,
+					 void *current_state_data, const struct sm_event *event,
+					 const struct sm_state *next_state, void *next_state_data) {
+	mocks.s6_entry_action(sm_user_data, current_state, current_state_data,
+						  event, next_state, next_state_data);
+}
+void s6_child_entry_action(void *sm_user_data,
+						   const struct sm_state *current_state,
+						   void *current_state_data,
+						   const struct sm_event *event,
+						   const struct sm_state *next_state,
+						   void *next_state_data) {
+	mocks.s6_child_entry_action(sm_user_data, current_state, current_state_data,
+								event, next_state, next_state_data);
+}
+void s6_child_child_entry_action(void *sm_user_data,
+								 const struct sm_state *current_state,
+								 void *current_state_data,
+								 const struct sm_event *event,
+								 const struct sm_state *next_state,
+								 void *next_state_data) {
+	mocks.s6_child_child_entry_action(sm_user_data, current_state,
+									  current_state_data, event, next_state,
+									  next_state_data);
+}
 void s_error_entry_action(void *sm_user_data,
 						  const struct sm_state *current_state,
 						  void *current_state_data,
@@ -73,6 +123,56 @@ void s4_exit_action(void *sm_user_data, const struct sm_state *current_state,
 					const struct sm_state *next_state, void *next_state_data) {
 	mocks.s4_exit_action(sm_user_data, current_state, current_state_data, event,
 						 next_state, next_state_data);
+}
+void s5_exit_action(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data) {
+	mocks.s5_exit_action(sm_user_data, current_state, current_state_data, event,
+						 next_state, next_state_data);
+}
+void s5_child_exit_action(void *sm_user_data,
+						  const struct sm_state *current_state,
+						  void *current_state_data,
+						  const struct sm_event *event,
+						  const struct sm_state *next_state,
+						  void *next_state_data) {
+	mocks.s5_child_exit_action(sm_user_data, current_state, current_state_data,
+							   event, next_state, next_state_data);
+}
+void s5_child_child_exit_action(void *sm_user_data,
+								const struct sm_state *current_state,
+								void *current_state_data,
+								const struct sm_event *event,
+								const struct sm_state *next_state,
+								void *next_state_data) {
+	mocks.s5_child_child_exit_action(sm_user_data, current_state,
+									 current_state_data, event, next_state,
+									 next_state_data);
+}
+void s6_exit_action(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data) {
+	mocks.s6_exit_action(sm_user_data, current_state, current_state_data, event,
+						 next_state, next_state_data);
+}
+void s6_child_exit_action(void *sm_user_data,
+						  const struct sm_state *current_state,
+						  void *current_state_data,
+						  const struct sm_event *event,
+						  const struct sm_state *next_state,
+						  void *next_state_data) {
+	mocks.s6_child_exit_action(sm_user_data, current_state, current_state_data,
+							   event, next_state, next_state_data);
+}
+void s6_child_child_exit_action(void *sm_user_data,
+								const struct sm_state *current_state,
+								void *current_state_data,
+								const struct sm_event *event,
+								const struct sm_state *next_state,
+								void *next_state_data) {
+	mocks.s6_child_child_exit_action(sm_user_data, current_state,
+									 current_state_data, event, next_state,
+									 next_state_data);
 }
 bool guard1(void *sm_user_data, const struct sm_state *current_state,
 			void *current_state_data, const struct sm_event *event,

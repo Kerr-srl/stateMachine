@@ -232,12 +232,6 @@ static int handle_event(struct sm_state_machine *sm_handle,
 		return stateM_noStateChange;
 	}
 
-	/* If the new state is a parent state, enter its entry state (if it has
-	 * one). Step down through the whole family tree until a state without
-	 * an entry state is found: */
-	while (next_state->entry_state)
-		next_state = next_state->entry_state;
-
 	/* Run exit action only if the current state is left (only if it does
 	 * not return to itself): */
 	if (next_state != sm_handle->current_state &&
@@ -256,6 +250,19 @@ static int handle_event(struct sm_state_machine *sm_handle,
 						  get_state_data(sm_handle, next_state));
 	}
 
+	/* If the new state is a parent state, enter its entry state (if it has
+	 * one). Step down through the whole family tree until a state without
+	 * an entry state is found: */
+	while (next_state->entry_state) {
+		if (next_state->entry_action) {
+			assert(next_state->entry_action->fn);
+			next_state->entry_action->fn(
+				sm_handle->user_data, sm_handle->current_state,
+				get_state_data(sm_handle, sm_handle->current_state), event,
+				next_state, get_state_data(sm_handle, next_state));
+		}
+		next_state = next_state->entry_state;
+	}
 	/* Call the new state's entry action if it has any (only if state does
 	 * not return to itself): */
 	if (next_state != sm_handle->current_state && next_state->entry_action) {

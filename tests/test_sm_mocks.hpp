@@ -37,6 +37,30 @@ struct StateCallbackMocks {
 			   void(void *sm_user_data, const struct sm_state *current_state,
 					void *current_state_data, const struct sm_event *event,
 					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_child_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_child_child_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_child_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_child_child_entry_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
 	MAKE_MOCK6(s_error_entry_action,
 			   void(void *sm_user_data, const struct sm_state *current_state,
 					void *current_state_data, const struct sm_event *event,
@@ -54,6 +78,30 @@ struct StateCallbackMocks {
 					void *current_state_data, const struct sm_event *event,
 					const struct sm_state *next_state, void *next_state_data));
 	MAKE_MOCK6(s4_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_child_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s5_child_child_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_child_exit_action,
+			   void(void *sm_user_data, const struct sm_state *current_state,
+					void *current_state_data, const struct sm_event *event,
+					const struct sm_state *next_state, void *next_state_data));
+	MAKE_MOCK6(s6_child_child_exit_action,
 			   void(void *sm_user_data, const struct sm_state *current_state,
 					void *current_state_data, const struct sm_event *event,
 					const struct sm_state *next_state, void *next_state_data));
