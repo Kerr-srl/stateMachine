@@ -30,9 +30,9 @@ if (TARGET ${PROJECT_NAME}::config)
 		)
 endif()
 
-set(UTILS_TARGET_NAME utils)
+set(UTILS_TARGET_NAME sm_state_machine_utils)
 add_library(${UTILS_TARGET_NAME} STATIC "")
-add_library(${PROJECT_NAME}::${UTILS_TARGET_NAME} ALIAS ${UTILS_TARGET_NAME})
+add_library(${PROJECT_NAME}::utils ALIAS ${UTILS_TARGET_NAME})
 target_sources(${UTILS_TARGET_NAME}
 	PRIVATE
 	sm_utils.cpp
