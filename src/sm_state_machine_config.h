@@ -24,6 +24,13 @@
 #endif
 
 #ifndef SM_STATE_MACHINE_OPTIMIZE_RAM
+/**
+ * Whether to enable RAM optimization by constructing transition functions
+ * (instead of transition tables) for each state.
+ *
+ * Users must use \ref SM_STATE_MACHINE_TRANSITION_DEF_START
+ * "SM_STATE_MACHINE_TRANSITION_DEF_*" macros to make this feature work.
+ */
 #define SM_STATE_MACHINE_OPTIMIZE_RAM 0u
 #endif
 
