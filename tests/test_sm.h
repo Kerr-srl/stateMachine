@@ -58,6 +58,7 @@ extern struct sm_state s_error;
 enum sm_public_event {
 	event_s1_to_s2,
 	event_s1_to_s5,
+	event_s1_to_s_guard,
 	event_s2_to_s3,
 	event_s3_to_s4,
 	event_s5_child_child_to_s6_child_child,

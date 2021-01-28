@@ -50,10 +50,10 @@ get_transition(const struct sm_state_machine *sm_handle,
 			   const struct sm_event *const event);
 static void *get_state_data(const struct sm_state_machine *sm_handle,
 							const struct sm_state *state);
-static int handle_event(struct sm_state_machine *state_machine,
-						const struct sm_event *event, sm_guard_fn guard,
-						sm_action_fn transition_action,
-						const struct sm_state *next_state);
+static enum sm_state_machine_handle_event_status
+handle_event(struct sm_state_machine *state_machine,
+			 const struct sm_event *event, sm_guard_fn guard,
+			 sm_action_fn transition_action, const struct sm_state *next_state);
 
 void sm_state_machine_init(struct sm_state_machine *sm_handle, const char *name,
 						   const struct sm_state *initial_state,
@@ -90,58 +90,71 @@ int sm_state_machine_handle_event(struct sm_state_machine *sm_handle,
 	}
 	return sm_state_machine_no_state_change;
 #else
-	if (!sm_handle || !event)
-		return stateM_errArg;
+
+	if (!sm_handle || !event) {
+		return sm_state_machine_error_arg;
+	}
 
 	if (!sm_handle->current_state) {
 		go_to_error_state(sm_handle, event);
-		return stateM_errorStateReached;
+		return sm_state_machine_error_state_reached;
 	}
 
 	if (!sm_handle->current_state->transitions ||
 		!sm_handle->current_state->transitions->num_transitions)
-		return stateM_noStateChange;
+		return sm_state_machine_no_state_change;
 
+	enum sm_state_machine_handle_event_status status =
+		sm_state_machine_no_state_change;
 	const struct sm_state *next_state = sm_handle->current_state;
 	do {
-		struct sm_transition *transition =
-			get_transition(sm_handle, next_state, event);
+		struct sm_transition *transition;
+		for (size_t i = 0; i < next_state->transitions->num_transitions; ++i) {
+			transition = &next_state->transitions->transitions[i];
 
-		/* If there were no transitions for the given event for the current
-		 * state, check if there are any transitions for any of the parent
-		 * states (if any): */
-		if (!transition) {
-			next_state = next_state->parent_state;
-			continue;
-		}
-
-		/* A transition must have a next state defined. If the user has not
-		 * defined the next state, go to error state: */
-		if (!transition->next_state) {
-			go_to_error_state(sm_handle, event);
-			return stateM_errorStateReached;
-		}
+			// A transition for the given event has been found:
+			if (transition->event_type == event->type) {
+				/*
+				 * A transition must have a next state defined. If the user has
+				 * not defined the next state, go to error state:
+				 */
+				assert(transition->next_state);
+				if (!transition->next_state) {
+					go_to_error_state(sm_handle, event);
+					return sm_state_machine_error_state_reached;
+				}
 
 #if SM_STATE_MACHINE_ENABLE_LOG
-		if (sm_handle->hooks.logger &&
-			sm_handle->hooks.logger->log_attempt_transition) {
-			sm_handle->hooks.logger->log_attempt_transition(
-				sm_handle, sm_state_machine_get_name(sm_handle), event,
-				sm_handle->hooks.stringify_event
-					? sm_handle->hooks.stringify_event(event)
-					: NULL,
-				transition->guard, sm_handle->current_state, transition->action,
-				transition->next_state);
-		}
+				if (sm_handle->hooks.logger &&
+					sm_handle->hooks.logger->log_attempt_transition) {
+					sm_handle->hooks.logger->log_attempt_transition(
+						sm_handle, sm_state_machine_get_name(sm_handle), event,
+						sm_handle->hooks.stringify_event
+							? sm_handle->hooks.stringify_event(event)
+							: NULL,
+						transition->guard, sm_handle->current_state,
+						transition->action, transition->next_state);
+				}
 #endif
-		return handle_event(
-			sm_handle, event,
-			transition->guard != NULL ? transition->guard->fn : NULL,
-			transition->action != NULL ? transition->action->fn : NULL,
-			transition->next_state);
+				status = handle_event(
+					sm_handle, event,
+					transition->guard != NULL ? transition->guard->fn : NULL,
+					transition->action != NULL ? transition->action->fn : NULL,
+					transition->next_state);
+				if (status != sm_state_machine_rejected_by_guard) {
+					break;
+				}
+			}
+		}
+
+		if (status == sm_state_machine_no_state_change) {
+			next_state = next_state->parent_state;
+		} else {
+			break;
+		}
 	} while (next_state);
 
-	return stateM_noStateChange;
+	return sm_state_machine_no_state_change;
 #endif
 }
 
@@ -217,10 +230,10 @@ static void *get_state_data(const struct sm_state_machine *sm_handle,
 	return NULL;
 }
 
-static int handle_event(struct sm_state_machine *sm_handle,
-						const struct sm_event *event, sm_guard_fn guard,
-						sm_action_fn transition_action,
-						const struct sm_state *next_state) {
+static enum sm_state_machine_handle_event_status
+handle_event(struct sm_state_machine *sm_handle, const struct sm_event *event,
+			 sm_guard_fn guard, sm_action_fn transition_action,
+			 const struct sm_state *next_state) {
 	bool guard_rejected = false;
 	if (guard &&
 		!guard(sm_handle->user_data, sm_handle->current_state,
@@ -229,7 +242,7 @@ static int handle_event(struct sm_state_machine *sm_handle,
 		guard_rejected = true;
 	}
 	if (guard_rejected) {
-		return sm_state_machine_no_state_change;
+		return sm_state_machine_rejected_by_guard;
 	}
 
 	/* Run exit action only if the current state is left (only if it does
@@ -303,14 +316,16 @@ sm_state_machine_get_name(const struct sm_state_machine *sm_handle) {
 #endif
 
 #if SM_STATE_MACHINE_OPTIMIZE_RAM
-int sm_state_machine_transition_def_helper_handle_event(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_handle_event(
 	struct sm_state_machine *sm_handle, const struct sm_event *event,
 	sm_guard_fn guard, sm_action_fn transition_action,
 	const struct sm_state *next_state) {
 	return handle_event(sm_handle, event, guard, transition_action, next_state);
 }
 
-int sm_state_machine_transition_def_helper_handle_event_ex(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_handle_event_ex(
 	struct sm_state_machine *sm_handle, const struct sm_event *event,
 	struct sm_guard *guard, struct sm_action *transition_action,
 	const struct sm_state *next_state) {
@@ -319,7 +334,8 @@ int sm_state_machine_transition_def_helper_handle_event_ex(
 		transition_action == NULL ? NULL : transition_action->fn, next_state);
 }
 
-int sm_state_machine_transition_def_helper_parent_handle_event(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_parent_handle_event(
 	struct sm_state_machine *sm_handle, const struct sm_event *event) {
 	assert(sm_handle->current_state != NULL);
 	if (sm_handle->current_state->parent_state &&

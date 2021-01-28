@@ -98,6 +98,47 @@ struct sm_state;
 struct sm_state_machine;
 
 /**
+ * \brief #sm_state_machine_handle_event return values
+ */
+enum sm_state_machine_handle_event_status {
+	/** \brief Erroneous arguments were passed */
+	sm_state_machine_error_arg = -2,
+	/**
+	 * \brief The error state was reached
+	 *
+	 * This value is returned either when the state machine enters the error
+	 * state itself as a result of an error, or when the error state is the
+	 * next state as a result of a successful transition.
+	 *
+	 * The state machine enters the state machine if any of the following
+	 * happens:
+	 * - The current state is NULL
+	 * - A transition for the current event did not define the next state
+	 */
+	sm_state_machine_error_state_reached,
+	/** \brief The current state changed into a non-final state */
+	sm_state_machine_state_changed,
+	/**
+	 * \brief The state changed back to itself
+	 *
+	 * The state can return to itself either directly or indirectly. An
+	 * indirect path may inlude a transition from a parent state and the use of
+	 * \ref state::entry_state "entry_states".
+	 */
+	sm_state_machine_self_loop,
+	/**
+	 * \brief The current state did not change on the given event
+	 *
+	 * If any event passed to the state machine should result in a state
+	 * change, this return value should be considered as an error.
+	 */
+	sm_state_machine_no_state_change,
+	sm_state_machine_rejected_by_guard,
+	/** \brief A final state (any but the error state) was reached */
+	sm_state_machine_final_state_reached,
+};
+
+/**
  * \brief Event
  *
  * Events trigger transitions from a state to another. Event types are defined
@@ -340,34 +381,52 @@ struct sm_state_transitions {
 };
 
 #if SM_STATE_MACHINE_OPTIMIZE_RAM
-int sm_state_machine_transition_def_helper_handle_event(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_handle_event(
 	struct sm_state_machine *sm_handle, const struct sm_event *event,
 	sm_guard_fn guard, sm_action_fn transition_action,
 	const struct sm_state *next_state);
-int sm_state_machine_transition_def_helper_handle_event_ex(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_handle_event_ex(
 	struct sm_state_machine *sm_handle, const struct sm_event *event,
 	struct sm_guard *guard, struct sm_action *transition_action,
 	const struct sm_state *next_state);
-int sm_state_machine_transition_def_helper_parent_handle_event(
+enum sm_state_machine_handle_event_status
+sm_state_machine_transition_def_helper_parent_handle_event(
 	struct sm_state_machine *sm_handle, const struct sm_event *event);
 #define SM_STATE_MACHINE_TRANSITION_DEF_START(_state_name_)                    \
-	int _state_name_##_transition_fn(struct sm_state_machine *sm_handle,       \
-									 const struct sm_event *event) {
+	enum sm_state_machine_handle_event_status _state_name_##_transition_fn(    \
+		struct sm_state_machine *sm_handle, const struct sm_event *event) {    \
+		enum sm_state_machine_handle_event_status status =                     \
+			sm_state_machine_no_state_change;                                  \
+		do {
 #define SM_STATE_MACHINE_TRANSITION_ADD(_event_, _guard_, _action_,            \
 										_next_state_)                          \
 	if (event->type == _event_) {                                              \
-		return sm_state_machine_transition_def_helper_handle_event(            \
+		status = sm_state_machine_transition_def_helper_handle_event(          \
 			sm_handle, event, _guard_, _action_, _next_state_);                \
+		if (status != sm_state_machine_rejected_by_guard) {                    \
+			break;                                                             \
+		}                                                                      \
 	}
 
 #define SM_STATE_MACHINE_TRANSITION_ADD_EX(_event_, _guard_, _action_,         \
 										   _next_state_)                       \
 	if (event->type == _event_) {                                              \
-		return sm_state_machine_transition_def_helper_handle_event_ex(         \
+		status = sm_state_machine_transition_def_helper_handle_event_ex(       \
 			sm_handle, event, (_guard_), (_action_), _next_state_);            \
+		if (status != sm_state_machine_rejected_by_guard) {                    \
+			break;                                                             \
+		}                                                                      \
 	}
 
 #define SM_STATE_MACHINE_TRANSITION_DEF_END(_state_name_)                      \
+	}                                                                          \
+	while (0)                                                                  \
+		;                                                                      \
+	if (status != sm_state_machine_no_state_change) {                          \
+		return status;                                                         \
+	}                                                                          \
 	return sm_state_machine_transition_def_helper_parent_handle_event(         \
 		sm_handle, event);                                                     \
 	}                                                                          \
@@ -637,46 +696,6 @@ void sm_state_machine_init(struct sm_state_machine *state_machine,
 						   const struct sm_state *error_state,
 						   struct sm_state_machine_hooks *hooks,
 						   void *user_data, void *state_data);
-
-/**
- * \brief stateM_handleEvent() return values
- */
-enum sm_state_machine_handle_event_status {
-	/** \brief Erroneous arguments were passed */
-	sm_state_machine_error_arg = -2,
-	/**
-	 * \brief The error state was reached
-	 *
-	 * This value is returned either when the state machine enters the error
-	 * state itself as a result of an error, or when the error state is the
-	 * next state as a result of a successful transition.
-	 *
-	 * The state machine enters the state machine if any of the following
-	 * happens:
-	 * - The current state is NULL
-	 * - A transition for the current event did not define the next state
-	 */
-	sm_state_machine_error_state_reached,
-	/** \brief The current state changed into a non-final state */
-	sm_state_machine_state_changed,
-	/**
-	 * \brief The state changed back to itself
-	 *
-	 * The state can return to itself either directly or indirectly. An
-	 * indirect path may inlude a transition from a parent state and the use of
-	 * \ref state::entry_state "entry_states".
-	 */
-	sm_state_machine_self_loop,
-	/**
-	 * \brief The current state did not change on the given event
-	 *
-	 * If any event passed to the state machine should result in a state
-	 * change, this return value should be considered as an error.
-	 */
-	sm_state_machine_no_state_change,
-	/** \brief A final state (any but the error state) was reached */
-	sm_state_machine_final_state_reached,
-};
 
 /**
  * \brief Utility macro that reduces the boilerplate code required for ref

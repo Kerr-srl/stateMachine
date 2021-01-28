@@ -123,6 +123,66 @@ TEST_CASE("State machine") {
 		sm_state_machine_handle_event(&sm, &event);
 	}
 
+	SECTION("same event, multiple guards") {
+		sm_state_machine sm;
+		sm_state_machine_hooks hooks = {};
+		sm_state_machine_init(&sm, nullptr, &s1, &s_error, &hooks,
+							  fake_user_data, nullptr);
+
+		SECTION("guard") {
+			struct sm_event event;
+			event.data = nullptr;
+			event.type = event_s1_to_s_guard;
+			sequence seq;
+			REQUIRE_CALL(mocks, guard1(fake_user_data, &s1, nullptr, &event,
+									   &s1, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(false);
+			REQUIRE_CALL(mocks, guard2(fake_user_data, &s1, nullptr, &event,
+									   &s2, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(false);
+			REQUIRE_CALL(mocks, guard3(fake_user_data, &s1, nullptr, &event,
+									   &s3, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(true);
+			REQUIRE_CALL(mocks, s1_exit_action(fake_user_data, &s1, nullptr,
+											   &event, &s3, nullptr))
+
+				.IN_SEQUENCE(seq);
+			REQUIRE_CALL(mocks, s3_entry_action(fake_user_data, &s1, nullptr,
+												&event, &s3, nullptr))
+				.IN_SEQUENCE(seq);
+			sm_state_machine_handle_event(&sm, &event);
+		}
+
+		SECTION("catch all") {
+			struct sm_event event;
+			event.data = nullptr;
+			event.type = event_s1_to_s_guard;
+			sequence seq;
+			REQUIRE_CALL(mocks, guard1(fake_user_data, &s1, nullptr, &event,
+									   &s1, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(false);
+			REQUIRE_CALL(mocks, guard2(fake_user_data, &s1, nullptr, &event,
+									   &s2, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(false);
+			REQUIRE_CALL(mocks, guard3(fake_user_data, &s1, nullptr, &event,
+									   &s3, nullptr))
+				.IN_SEQUENCE(seq)
+				.RETURN(false);
+			REQUIRE_CALL(mocks, s1_exit_action(fake_user_data, &s1, nullptr,
+											   &event, &s4, nullptr))
+				.IN_SEQUENCE(seq);
+			REQUIRE_CALL(mocks, s4_entry_action(fake_user_data, &s1, nullptr,
+												&event, &s4, nullptr))
+				.IN_SEQUENCE(seq);
+			sm_state_machine_handle_event(&sm, &event);
+		}
+	}
+
 	SECTION("single instance - state data") {
 		sm_state_machine sm;
 		sm_state_machine_hooks hooks = {

@@ -39,6 +39,10 @@ SM_STATE_MACHINE_TRANSITION_ADD_EX(event_s1_to_s2,
 SM_STATE_MACHINE_TRANSITION_ADD_EX(event_chain_s1_s2, NULL,
 								   &trans_action1_action, &s2)
 SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s5, NULL, NULL, &s5)
+SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s_guard, guard1, NULL, &s1)
+SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s_guard, guard2, NULL, &s2)
+SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s_guard, guard3, NULL, &s3)
+SM_STATE_MACHINE_TRANSITION_ADD(event_s1_to_s_guard, NULL, NULL, &s4)
 SM_STATE_MACHINE_TRANSITION_DEF_END(s1)
 struct sm_state s1 = {
 	SM_STATE_MACHINE_STATE_NAME(s1),
